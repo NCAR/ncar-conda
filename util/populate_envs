@@ -1,0 +1,37 @@
+#!/bin/bash
+#
+#   This utility script can be used to detect deployed environments
+
+set -e
+
+# Prep work
+repo_root="$( cd "$(dirname "$0")"/.. ; pwd )"
+. $repo_root/config/${1:-$NCAR_HOST}.cfg
+cd $repo_root/envs
+
+echo "Querying Conda environments on system ..."
+
+# Get list of environment types
+env_types=$(find . -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+
+# Get listing of environments in system dir
+env_list=$(conda env list | grep $NCAR_ROOT_CONDA)
+
+# Populate YAML files
+for env_type in $env_types; do
+    echo "Looking for $env_type environments ..."
+    sub_list=$(awk -v et=${env_type}- '$1 ~ et {print $1}' <<< "$env_list")
+    mkdir -p $env_type/versions
+
+    for env_name in $sub_list; do
+        if [[ ! -f $env_type/${env_name}.yml ]]; then
+            echo " - exporting environment packages: $env_name"
+            conda env export --from-history -n $env_name > $env_type/${env_name}.yml
+        fi
+        
+        if [[ ! -f $env_type/versions/${env_name}.yml ]]; then
+            echo " - exporting environment versions: $env_name"
+            conda env export -n $env_name > $env_type/versions/${env_name}.yml
+        fi
+    done
+done
