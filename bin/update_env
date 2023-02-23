@@ -1,0 +1,38 @@
+#!/bin/bash
+#
+#   This utility script can be used to update a particular deployed
+#   environment, specified by name as the argument
+#
+#   Last Revised:   09:15, 23 Feb 2023
+#
+
+set -e
+
+if [[ $# -eq 1 ]]; then
+    spec_env=$1
+else
+    >&2 echo "Error: need to specify an environment by name"
+    exit 1
+fi
+
+# Prep work
+repo_root="$( cd "$(dirname "$0")"/.. ; pwd )"
+
+$repo_root/util/check_user
+$repo_root/util/check_repo
+
+. $repo_root/config/${1:-$NCAR_HOST}.cfg
+cd $repo_root/envs
+
+echo "Searching YAML catalog for $spec_env ..."
+env_file=$(find . -maxdepth 2 -type f -name $spec_env)
+
+if [[ -z $env_file ]]; then
+    >& echo "Error: no YAML file found for $spec_env"
+    exit 1
+fi
+
+# Use mamba for faster dependency resolution
+mkdir -p $repo_root/logs
+stamp=$(date +%y%m%dT%H%M)
+mamba env update -n $spec_env -f $env_file > $repo_root/logs/updates_${spec_env}_$stamp

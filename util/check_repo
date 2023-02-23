@@ -1,0 +1,33 @@
+#!/bin/bash
+#
+#   This script checks whether the repo is up to date, and optionally
+#   whether any uncommitted changes exist.
+#
+#   Last Revised:   18:29, 22 Feb 2023
+#
+
+set -e
+
+# Prep work
+repo_root="$( cd "$(dirname "$0")"/.. ; pwd )"
+cd $repo_root
+
+echo "Checking whether local and remote Git repos match ..."
+remote_commit=$(git ls-remote -h origin main | awk '{print $1}')
+local_commit=$(git rev-parse HEAD)
+
+if [[ $remote_commit != $local_commit ]]; then
+    >&2 echo "Error:  Remote on Github and local repo are not in sync."
+    >&2 echo "           Remote: $remote_commit"
+    >&2 echo -e "           Local:  $local_commit\n"
+    exit 1
+fi
+
+if [[ " $@ " == *" --strict "* ]]; then
+    echo "Checking for uncommitted changes in local repo ..."
+    
+    if [[ -n $(git status -s) ]]; then
+        >&2 echo -e "Error:  Uncommitted changes in Git repo. Resolve and then retry.\n"
+        exit 1
+    fi
+fi
