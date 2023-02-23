@@ -3,16 +3,72 @@
 #   This utility script can be used to update a particular deployed
 #   environment, specified by name as the argument
 #
-#   Last Revised:   09:42, 23 Feb 2023
+#   Last Revised:   15:28, 23 Feb 2023
 #
 
 set -e
 
-if [[ $# -eq 1 ]]; then
-    spec_env=$1
-else
+function usage {
+cat << EOF
+update_env [OPTIONS] ENV_NAME
+
+Options
+    --help              display this help information
+    -f, --fixed         use fixed-versions YAML file (not from history)
+EOF
+
+exit ${1:-0}
+}
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --help)
+            usage
+            ;;
+        -f|--fixed)
+            fixed_versions=true
+            fmin=2 fmax=3
+            ;;
+        *)
+            env_name=$1
+            ;;
+    esac
+
+    shift
+done
+
+function check_env_diff {
+    echo "Checking current status of environment ..."
+    conda env export $1 -n $env_name > .envdump.tmp
+
+    if ! cmp -s .envdump.tmp $env_file; then
+        change_detected=yes
+        printf "%-47s %s\n" "Old Packages" "New Packages" > $log_file
+        printf -- '-%.0s' {1..100}; echo >> $log_file
+        diff -W100 -y .envdump.tmp $env_file
+    fi
+
+    rm .envdump.tmp
+
+    if [[ ${change_detected:-no} == no ]]; then
+        echo "No changes detected in current YAML file. Exiting."
+        exit
+    else
+        echo -e "\n**** CHANGES ****\n"
+        head -n2 $log_file
+        grep '[|<>]' $log_file
+        echo
+        read -e -p "Proceed with changes (y/N)? " make_changes
+    fi
+
+    if [[ YES != ${make_changes^^}* ]]; then
+        exit
+    fi
+}
+
+if [[ -z $env_name ]]; then
     >&2 echo "Error: need to specify an environment by name"
-    exit 1
+    usage 1
 fi
 
 # Prep work
@@ -24,15 +80,24 @@ $repo_root/util/check_repo
 . $repo_root/config/${NCAR_HOST}.cfg
 cd $repo_root/envs
 
-echo "Searching YAML catalog for $spec_env ..."
-env_file=$(find . -maxdepth 2 -type f -name $spec_env)
+echo "Searching YAML catalog for $env_name ..."
+env_file=$(find . -mindepth ${fmin:-1} -maxdepth ${fmax:-2} -type f -name ${env_name/.yml}.yml)
 
-if [[ -z $env_file ]]; then
-    >& echo "Error: no YAML file found for $spec_env"
+if [[ -n $env_file ]]; then
+    echo " - Using YAML file: $env_file"
+else
+    >&2 echo "Error: no YAML file found for $env_name"
     exit 1
 fi
 
 # Use mamba for faster dependency resolution
 mkdir -p $repo_root/logs
-stamp=$(date +%y%m%dT%H%M)
-mamba env update -n $spec_env -f $env_file > $repo_root/logs/updates_${spec_env}_$stamp
+log_file=$repo_root/logs/updates_${spec_env}_$(date +%y%m%dT%H%M)
+
+if [[ ${fixed_versions:-false} == true ]]; then
+    check_env_diff
+    mamba env update -n $env_name -f $env_file >> $log_file
+else
+    check_env_diff --from-history
+    mamba env update -n $env_name -f $env_file >> $log_file
+fi
