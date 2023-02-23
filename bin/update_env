@@ -3,7 +3,7 @@
 #   This utility script can be used to update a particular deployed
 #   environment, specified by name as the argument
 #
-#   Last Revised:   09:15, 23 Feb 2023
+#   Last Revised:   09:42, 23 Feb 2023
 #
 
 set -e
@@ -21,7 +21,7 @@ repo_root="$( cd "$(dirname "$0")"/.. ; pwd )"
 $repo_root/util/check_user
 $repo_root/util/check_repo
 
-. $repo_root/config/${1:-$NCAR_HOST}.cfg
+. $repo_root/config/${NCAR_HOST}.cfg
 cd $repo_root/envs
 
 echo "Searching YAML catalog for $spec_env ..."

@@ -6,7 +6,7 @@ set -e
 
 # Prep work
 repo_root="$( cd "$(dirname "$0")"/.. ; pwd )"
-. $repo_root/config/${1:-$NCAR_HOST}.cfg
+. $repo_root/config/${NCAR_HOST}.cfg
 cd $repo_root/envs
 
 echo "Querying Conda environments on system ..."
