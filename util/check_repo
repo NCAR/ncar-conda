@@ -3,7 +3,7 @@
 #   This script checks whether the repo is up to date, and optionally
 #   whether any uncommitted changes exist.
 #
-#   Last Revised:   18:29, 22 Feb 2023
+#   Last Revised:   15:31, 24 Feb 2023
 #
 
 set -e
@@ -18,7 +18,7 @@ local_commit=$(git rev-parse HEAD)
 
 if [[ $remote_commit != $local_commit ]]; then
     >&2 echo "Error:  Remote on Github and local repo are not in sync."
-    >&2 echo "           Remote: $remote_commit"
+    >&2 echo -e "\n           Remote: $remote_commit"
     >&2 echo -e "           Local:  $local_commit\n"
     exit 1
 fi
