@@ -3,7 +3,7 @@
 #   This utility script can be used to update a particular deployed
 #   environment, specified by name as the argument
 #
-#   Last Revised:   15:28, 23 Feb 2023
+#   Last Revised:   17:57, 23 Feb 2023
 #
 
 set -e
@@ -44,8 +44,9 @@ function check_env_diff {
     if ! cmp -s .envdump.tmp $env_file; then
         change_detected=yes
         printf "%-47s %s\n" "Old Packages" "New Packages" > $log_file
-        printf -- '-%.0s' {1..100}; echo >> $log_file
-        diff -W100 -y .envdump.tmp $env_file
+        printf -- '-%.0s' {1..100} >> $log_file
+        echo >> $log_file
+        diff -W100 -y .envdump.tmp $env_file >> $log_file
     fi
 
     rm .envdump.tmp
@@ -55,13 +56,14 @@ function check_env_diff {
         exit
     else
         echo -e "\n**** CHANGES ****\n"
-        head -n2 $log_file
+        head -n 2 $log_file
         grep '[|<>]' $log_file
         echo
         read -e -p "Proceed with changes (y/N)? " make_changes
     fi
 
     if [[ YES != ${make_changes^^}* ]]; then
+        rm $log_file
         exit
     fi
 }
@@ -92,12 +94,12 @@ fi
 
 # Use mamba for faster dependency resolution
 mkdir -p $repo_root/logs
-log_file=$repo_root/logs/updates_${spec_env}_$(date +%y%m%dT%H%M)
+log_file=$repo_root/logs/updates_${env_name}_$(date +%y%m%dT%H%M)
 
 if [[ ${fixed_versions:-false} == true ]]; then
     check_env_diff
-    mamba env update -n $env_name -f $env_file >> $log_file
 else
     check_env_diff --from-history
-    mamba env update -n $env_name -f $env_file >> $log_file
 fi
+
+mamba env update -n $env_name -f $env_file >> $log_file
