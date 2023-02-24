@@ -3,10 +3,8 @@
 #   This utility script can be used to update a particular deployed
 #   environment, specified by name as the argument
 #
-#   Last Revised:   17:57, 23 Feb 2023
+#   Last Revised:   15:28, 24 Feb 2023
 #
-
-set -e
 
 function usage {
 cat << EOF
@@ -56,7 +54,8 @@ function check_env_diff {
         exit
     else
         echo -e "\n**** CHANGES ****\n"
-        head -n 2 $log_file
+        printf "%-49s %s\n" "Remove Packages" "Add Packages"
+        printf -- '-%.0s' {1..100}; echo
         grep '[|<>]' $log_file
         echo
         read -e -p "Proceed with changes (y/N)? " make_changes
@@ -102,4 +101,14 @@ else
     check_env_diff --from-history
 fi
 
-mamba env update -n $env_name -f $env_file >> $log_file
+# First remove packages, then add
+remove_pkgs=$(grep '<' $log_file | awk '{print $2}' | xargs)
+add_pkgs=$(grep '>' $log_file | awk '{print $NF}' | xargs)
+
+if [[ -n $remove_pkgs ]]; then
+    mamba uninstall -n $env_name $remove_pkgs |& tee -a $log_file
+fi
+
+if [[ -n $add_pkgs ]]; then
+    mamba install -n $env_name $add_pkgs |& tee -a $log_file
+fi
