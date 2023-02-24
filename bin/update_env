@@ -3,7 +3,7 @@
 #   This utility script can be used to update a particular deployed
 #   environment, specified by name as the argument
 #
-#   Last Revised:   15:28, 24 Feb 2023
+#   Last Revised:   15:30, 24 Feb 2023
 #
 
 function usage {
@@ -75,8 +75,8 @@ fi
 # Prep work
 repo_root="$( cd "$(dirname "$0")"/.. ; pwd )"
 
-$repo_root/util/check_user
-$repo_root/util/check_repo
+$repo_root/util/check_user || exit 1
+$repo_root/util/check_repo || exit 1
 
 . $repo_root/config/${NCAR_HOST}.cfg
 cd $repo_root/envs
