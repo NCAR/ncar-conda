@@ -3,7 +3,7 @@
 #   This utility script can be used to update a particular deployed
 #   environment, specified by name as the argument
 #
-#   Last Revised:   15:54, 24 Feb 2023
+#   Last Revised:   16:06, 24 Feb 2023
 #
 
 function usage {
@@ -41,6 +41,8 @@ function check_env_diff {
 
     if ! cmp -s <(sed -n '/channels:/,/dependencies:/{//!p}' $env_file) <(sed -n '/channels:/,/dependencies:/{//!p}' .envdump.tmp); then
         echo "Error: channels differ between current and proposed environments. Resolve first!"
+        rm .envdump.tmp
+        exit 1
     elif ! cmp -s <(sed -n '/dependencies:/,/prefix:/{//!p}' $env_file) <(sed -n '/dependencies:/,/prefix:/{//!p}' .envdump.tmp); then
         change_detected=yes
         printf "%-47s %s\n" "Old Packages" "New Packages" > $log_file
@@ -49,10 +51,9 @@ function check_env_diff {
         diff -W100 -y .envdump.tmp $env_file >> $log_file
     fi
 
-    rm .envdump.tmp
-
     if [[ ${change_detected:-no} == no ]]; then
         echo "No changes detected in current YAML file. Exiting."
+        rm .envdump.tmp
         exit
     else
         echo -e "\n**** CHANGES ****\n"
@@ -67,6 +68,8 @@ function check_env_diff {
         rm $log_file
         exit
     fi
+
+    mv .envdump.tmp $repo_root/logs/revert_${env_name}_${datestamp}.yml
 }
 
 if [[ -z $env_name ]]; then
@@ -95,7 +98,8 @@ fi
 
 # Use mamba for faster dependency resolution
 mkdir -p $repo_root/logs
-log_file=$repo_root/logs/updates_${env_name}_$(date +%y%m%dT%H%M)
+datestamp=$(date +%y%m%dT%H%M)
+log_file=$repo_root/logs/updates_${env_name}_$datestamp
 
 if [[ ${fixed_versions:-false} == true ]]; then
     check_env_diff
