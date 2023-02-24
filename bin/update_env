@@ -3,7 +3,7 @@
 #   This utility script can be used to update a particular deployed
 #   environment, specified by name as the argument
 #
-#   Last Revised:   16:08, 24 Feb 2023
+#   Last Revised:   16:10, 24 Feb 2023
 #
 
 function usage {
@@ -70,6 +70,7 @@ function check_env_diff {
         exit
     fi
 
+    echo -e "Archiving current environment YAML to support reverts ...\n"
     conda env export -n $env_name > $repo_root/logs/revert_${env_name}_${datestamp}.yml
 }
 
