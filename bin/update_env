@@ -3,7 +3,7 @@
 #   This utility script can be used to update a particular deployed
 #   environment, specified by name as the argument
 #
-#   Last Revised:   15:30, 24 Feb 2023
+#   Last Revised:   15:54, 24 Feb 2023
 #
 
 function usage {
@@ -39,7 +39,9 @@ function check_env_diff {
     echo "Checking current status of environment ..."
     conda env export $1 -n $env_name > .envdump.tmp
 
-    if ! cmp -s .envdump.tmp $env_file; then
+    if ! cmp -s <(sed -n '/channels:/,/dependencies:/{//!p}' $env_file) <(sed -n '/channels:/,/dependencies:/{//!p}' .envdump.tmp); then
+        echo "Error: channels differ between current and proposed environments. Resolve first!"
+    elif ! cmp -s <(sed -n '/dependencies:/,/prefix:/{//!p}' $env_file) <(sed -n '/dependencies:/,/prefix:/{//!p}' .envdump.tmp); then
         change_detected=yes
         printf "%-47s %s\n" "Old Packages" "New Packages" > $log_file
         printf -- '-%.0s' {1..100} >> $log_file
