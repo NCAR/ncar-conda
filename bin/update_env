@@ -3,7 +3,7 @@
 #   This utility script can be used to update a particular deployed
 #   environment, specified by name as the argument
 #
-#   Last Revised:   17:53, 24 Feb 2023
+#   Last Revised:   21:10, 24 Feb 2023
 #
 
 function usage {
@@ -111,7 +111,7 @@ fi
 
 # First remove packages, then add
 remove_pkgs=$(grep '<' $log_file | awk '{print $2}' | xargs)
-add_pkgs=$(grep '>' $log_file | awk '{print $NF}' | xargs)
+add_pkgs=$(grep '[>|]' $log_file | awk '{print $NF}' | xargs)
 
 if [[ -n $remove_pkgs ]]; then
     mamba uninstall -n $env_name $remove_pkgs
