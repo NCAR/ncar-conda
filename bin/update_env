@@ -3,7 +3,7 @@
 #   This utility script can be used to update a particular deployed
 #   environment, specified by name as the argument
 #
-#   Last Revised:   16:10, 24 Feb 2023
+#   Last Revised:   17:53, 24 Feb 2023
 #
 
 function usage {
@@ -25,7 +25,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         -f|--fixed)
             fixed_versions=true
-            fmin=2 fmax=3
+            fdepth=3
             ;;
         *)
             env_name=$1
@@ -89,7 +89,7 @@ $repo_root/util/check_repo || exit 1
 cd $repo_root/envs
 
 echo "Searching YAML catalog for $env_name ..."
-env_file=$(find . -mindepth ${fmin:-1} -maxdepth ${fmax:-2} -type f -name ${env_name/.yml}.yml)
+env_file=$(find . -mindepth ${fdepth:-2} -maxdepth ${fdepth:-2} -type f -name ${env_name/.yml}.yml)
 
 if [[ -n $env_file ]]; then
     echo " - Using YAML file: $env_file"
@@ -114,9 +114,9 @@ remove_pkgs=$(grep '<' $log_file | awk '{print $2}' | xargs)
 add_pkgs=$(grep '>' $log_file | awk '{print $NF}' | xargs)
 
 if [[ -n $remove_pkgs ]]; then
-    mamba uninstall -n $env_name $remove_pkgs |& tee -a $log_file
+    mamba uninstall -n $env_name $remove_pkgs
 fi
 
 if [[ -n $add_pkgs ]]; then
-    mamba install -n $env_name $add_pkgs |& tee -a $log_file
+    mamba install -n $env_name $add_pkgs
 fi
