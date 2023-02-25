@@ -78,4 +78,6 @@ dependencies:
   - seawater
   - tobac
   - nc-time-axis
+  - jupyter-book
+  - ghp-import
 prefix: /glade/u/apps/opt/conda/envs/npl-2023a
