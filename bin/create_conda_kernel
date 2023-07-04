@@ -6,7 +6,7 @@
 #   nor does it leave out the sourced environment files.
 #
 #   Author:         Brian Vanderwende
-#   Last Revised:   13:29, 04 Jul 2023
+#   Last Revised:   13:49, 04 Jul 2023
 #
 
 function usage {
@@ -181,6 +181,9 @@ esac
 
 if [[ $? != 0 ]]; then
     exit 1
+elif [[ -d $kernel_path/share ]]; then
+    mv $kernel_path/share/jupyter/kernels/$kernel_name/* $kernel_path
+    rm -rf $kernel_path/share
 fi
 
 # Add launcher script to ensure non-python conda settings are activated
