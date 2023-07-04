@@ -1,0 +1,174 @@
+#!/bin/bash
+#
+#   This utility script can be used to update a particular deployed
+#   environment, specified by name as the argument
+#
+#   Last Revised:   19:04, 03 Jul 2023
+#
+
+function usage {
+cat << EOF
+$0 [OPTIONS] [ENVIRONMENT]
+
+This script compares a selected conda environment (specified either by
+name or by prefix) to a YAML representation of the environment. Any
+package additions / removals / updates are noted. Think of the output as
+an environment diff.
+
+If no environment is specified, this script will attempt to use the
+current active environment if possible.
+
+Options
+    -h, --help          Display this help information.
+    -c, --colorize      Conditionally color code output.
+    -f, --from-history  Use from history mode of YAML export.
+    -q, --quiet         Silence all output and only return status.
+                        (0 - no differences; 1 - differences found)
+    -y, --yaml PATH     Provide the path to the reference YAML file. Not
+                        required if checking environment tracked by this
+                        repository.
+    
+EOF
+
+exit ${1:-0}
+}
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -h|--help)
+            usage
+            ;;
+        -c|--colorize)
+            use_colors=true
+            ;;
+        -f|--from-history)
+            conda_opts=--from-history
+            fdepth=2
+            ;;
+        -q|--quiet)
+            quiet_mode=true
+            ;;
+        -y|--yaml*)
+            if [[ $1 == *=* ]]; then
+                yaml_file=${1#*=}
+            else
+                yaml_file=$2
+                shift
+            fi
+            ;;
+        *)
+            my_env=$1
+            ;;
+    esac
+
+    shift
+done
+
+# Make sure we can access conda
+current_prefix=$CONDA_PREFIX
+
+if ! conda deactivate &> /dev/null; then
+    module -q load conda
+
+    if [[ $? != 0 ]]; then
+        >&2 echo "Error: Conda not initialized in your environment. Run conda init first!"
+        exit -1
+    fi
+fi
+
+[[ $quiet_mode != true ]] && echo "Loading and inspecting conda environment ..."
+my_env=${my_env:-$current_prefix}
+
+# Activate a conda environment if specified, otherwise check for loaded env
+if [[ -n $my_env ]]; then
+    conda activate $my_env
+
+    if [[ $? != 0 ]]; then
+        exit -1
+    fi
+else
+    >&2 echo "Error: No conda environment loaded or specified."
+    usage -1
+fi
+
+env_name=${CONDA_PREFIX##*/}
+repo_root="$( cd "$(dirname "$0")"/.. ; pwd )"
+cd $repo_root/envs
+
+if [[ -z $yaml_file ]]; then
+    [[ $quiet_mode != true ]] && echo "Searching YAML catalog for $env_name ..."
+    yaml_file=$(find . -mindepth ${fdepth:-3} -maxdepth ${fdepth:-3} -type f -name ${env_name/.yml}.yml)
+
+    if [[ -n $yaml_file ]]; then
+        [[ $quiet_mode != true ]] && echo " - Using YAML file: $yaml_file"
+    else
+        >&2 echo "Error: no YAML file found for $env_name"
+        exit -1
+    fi
+else
+    if [[ -n $yaml_file ]]; then
+        [[ $quiet_mode != true ]] && echo " - Using YAML file: $yaml_file"
+    else
+        >&2 echo "Error: no YAML file found at $yaml_file"
+        exit -1
+    fi
+fi
+
+[[ $quiet_mode != true ]] && echo "Retrieving current state of this environment ..."
+conda env export $conda_opts > .tmp.envdump
+found_something=0
+
+# Pretty colors
+if [[ $use_colors == true ]]; then
+    export gcol="\033[1;32m" bcol="\033[1;34m" ycol="\033[1;33m" dcol="\033[0m"
+fi
+
+function compare_states {
+    diff -W100 -y .tmp.yaml .tmp.env | grep '[|<>]' > .tmp.diff
+
+    if [[ $(wc -l < .tmp.diff) -gt 0 ]]; then
+        if [[ $found_something -eq 0 ]]; then
+            found_something=1
+            [[ $quiet_mode != true ]] && clear
+        fi
+
+        if [[ $quiet_mode != true ]]; then
+            printf "\n%-47s %s\n" "YAML $1" "Environment $1"
+            printf -- '-%.0s' {1..100}
+            echo
+            while IFS= read line; do
+                if [[ $line == *'<'* ]]; then
+                    echo -e "${ycol}$line${dcol}"
+                elif [[ $line == *'>'* ]]; then
+                    echo -e "${gcol}$line${dcol}"
+                else
+                    echo -e "${bcol}$line${dcol}"
+                fi
+            done < .tmp.diff
+        fi
+    fi
+}
+
+# Extract elements from YAML files
+awk '/channels:/{ f = 1; next } /.*:/{ f = 0 } f' $yaml_file | sort > .tmp.yaml
+awk '/channels:/{ f = 1; next } /.*:/{ f = 0 } f' .tmp.envdump | sort > .tmp.env
+
+compare_states Channels
+
+awk '/dependencies:/{ f = 1; next } /.*:/{ f = 0 } f' $yaml_file | sort > .tmp.yaml
+awk '/dependencies:/{ f = 1; next } /.*:/{ f = 0 } f' .tmp.envdump | sort > .tmp.env
+
+compare_states Packages
+
+if [[ $quiet_mode != true ]] && [[ $found_something -ne 0 ]]; then
+    echo -e "\n  Legend:"
+    echo -e "    ${gcol}>${dcol} - ${gcol}Only in current environment${dcol}"
+    echo -e "    ${ycol}<${dcol} - ${ycol}Only in YAML file${dcol}"
+    echo -e "    ${bcol}|${dcol} - ${bcol}Version difference${dcol}\n"
+fi
+
+# Clean up
+rm .tmp.envdump .tmp.env .tmp.yaml
+
+# Return 1 if differences are found
+exit $found_something

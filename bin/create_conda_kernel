@@ -1,0 +1,211 @@
+#!/bin/bash
+#
+#   This script can be used to make a proper conda kernel from
+#   any accessible conda environment. Unlike the existing creation
+#   strategies, this method does not rely on ownership of the environment
+#   nor does it leave out the sourced environment files.
+#
+#       Author:         Brian Vanderwende
+#       Last Revised:   
+#
+
+function usage {
+cat << EOF
+Usage: $0 [-n NAME] [ENVIRONMENT]
+
+This script allows you to create a Jupyter kernel for any
+accessible conda environment. If you have a conda environment
+activated, this script will use that environment - otherwise
+provide the path of the desired environment.
+
+Options
+    -n, --name NAME     provide a custom name for the Jupyter kernel
+    -p, --prefix PATH   a custom path for the kernel, instead of home
+    -t, --type TYPE     language type: Python (default) or R
+
+EOF
+}
+
+# Kernel types supported
+declare -A kbins
+kbins[python]=bin/python
+kbins[r]=lib/R/bin/R
+
+# Make sure we can access conda
+current_prefix=$CONDA_PREFIX
+
+if ! conda deactivate &> /dev/null; then
+    module -q load conda
+
+    if [[ $? != 0 ]]; then
+        >&2 echo "Error: Conda not initialized in your environment. Run conda init first!"
+        exit 1
+    fi
+fi
+
+# Process arguments
+while [[ $# -gt 0 ]]; do
+    if [[ ! -z $read_value ]]; then
+        declare "$read_value=$1"
+        unset read_value
+    else
+        case $1 in
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            -n|--name*)
+                [[ $1 == *=* ]] && display_name=${1#*=} || read_value=display_name
+                ;;
+            -p|--prefix*)
+                [[ $1 == *=* ]] && kernel_path=${1#*=} || read_value=kernel_path
+                ;;
+            -t|--type*)
+                [[ $1 == *=* ]] && kernel_type=${1#*=} || read_value=kernel_type
+                ;;
+            *)
+                env_path=$1
+                ;;
+        esac
+    fi
+
+    shift
+done
+
+echo "Loading and inspecting conda environment ..."
+env_path=${env_path:-$current_prefix}
+
+# Activate a conda environment if specified, otherwise check for loaded env
+if [[ -n $env_path ]]; then
+    conda activate $env_path
+
+    if [[ $? != 0 ]]; then
+        exit 1
+    fi
+else
+    >&2 echo "Error: No conda environment loaded or specified."
+    exit 1
+fi
+
+# Check interpreter or use Python
+if [[ -n $kernel_type ]]; then
+    if [[ -z ${kbins[${kernel_type,,}]} ]]; then
+        >&2 echo "Error: Unrecognized kernel type == $kernel_type"
+        exit 1
+    fi
+else
+    kernel_type=python
+fi
+
+# Check conda environment for kernel support
+case ${kernel_type,,} in
+    python)
+        if ! python -c "import ipykernel" &> /dev/null; then
+            >&2 echo "Error: Environment does not support kernels (needs ipykernel package)."
+            exit 1
+        fi
+        ;;
+    r)
+        if [[ $(conda list | grep -c -e r-irkernel -e jupyter_client) -ne 2 ]]; then
+            >&2 echo "Error: Environment does not support kernels (needs r-irkernel and jupyter_client)."
+            exit 1
+        fi
+        ;;
+esac
+
+# Name scheme for kernel is owner-name; display name is environment name or custom
+env_name=${CONDA_PREFIX##*/}
+env_owner=$(stat -c "%U" $CONDA_PREFIX)
+base_prefix=$(conda env list | awk '$1 == "base" { print $2 }')
+
+if [[ $base_prefix == $CONDA_PREFIX ]]; then
+    read -e -p "Activated environment is base environment. Continue (y/N)? " use_base
+    use_base=${use_base:-no}
+
+    if [[ yes == ${use_base,,}* ]]; then
+        env_name=conda-base
+    else
+        exit
+    fi
+fi
+
+if [[ $env_owner != $(whoami) ]]; then
+    kernel_name=${env_owner}-$env_name
+else
+    kernel_name=$env_name
+fi
+
+# Create basic kernel using ipykernel package
+read -e -p "Create kernel for $env_name environment (y/N)? " go_ahead
+go_ahead=${go_ahead:-no}
+
+if [[ yes != ${go_ahead,,}* ]]; then
+    exit
+fi
+
+if [[ -n $kernel_path ]]; then
+    case ${kernel_type,,} in
+        python)
+            prefix_arg="--prefix $kernel_path"
+            ;;
+        r)
+            prefix_arg="prefix = '$kernel_path',"
+            ;;
+    esac
+else
+    kernel_path=$HOME/.local/share/jupyter/kernels/$kernel_name
+fi
+
+echo "Creating kernel spec at $kernel_path ..."
+
+if [[ -d $kernel_path ]]; then
+    >&2 echo "Error: Kernel path already exists. Will not clobber!"
+    exit 1
+fi
+
+case $kernel_type in
+    python)
+        python -m ipykernel install ${prefix_arg:---user} --name $kernel_name --display-name ${display_name:-$kernel_name} > /dev/null
+        ;;
+    r)
+        R -e "library(IRkernel)" -e "IRkernel::installspec($prefix_arg name = '$kernel_name', displayname = '${display_name:-$kernel_name}')" > /dev/null
+        ;;
+esac
+
+if [[ $? != 0 ]]; then
+    exit 1
+fi
+
+# Add launcher script to ensure non-python conda settings are activated
+cat > $kernel_path/launcher << EOF
+#!/bin/bash --norc
+
+# Load only the conda module
+module -q purge
+module -q load ncarenv conda
+
+# Resolve any symbolic links
+stable_path=\$(readlink -f $CONDA_PREFIX)
+
+# Activate the specified environment
+conda activate \$stable_path
+
+# Run the interpreter
+exec ${kbins[${kernel_type,,}]##*/} \$@
+EOF
+
+chmod +x $kernel_path/launcher
+
+# Modify kernel json spec to use launcher
+sed -i "s|${CONDA_PREFIX}/${kbins[${kernel_type,,}]}|$kernel_path/launcher|" $kernel_path/kernel.json
+
+cat << EOF
+
+    Display name:       ${display_name:-$kernel_name}
+    Language type:      $kernel_type
+    Environment owner:  $env_owner ($(getent passwd $env_owner | awk -F[:,] '{print $5}'))
+    
+    Kernel path:        $kernel_path
+    Environment path:   $CONDA_PREFIX
+
+EOF
