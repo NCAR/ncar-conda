@@ -6,7 +6,7 @@
 #   nor does it leave out the sourced environment files.
 #
 #   Author:         Brian Vanderwende
-#   Last Revised:   19:23, 03 Jul 2023
+#   Last Revised:   07:43, 04 Jul 2023
 #
 
 function usage {
@@ -25,6 +25,9 @@ Options
 
 EOF
 }
+
+# Path for NCAR system envs
+sys_env_root=/glade/u/apps/opt/conda/envs
 
 # Kernel types supported
 declare -A kbins
@@ -129,7 +132,7 @@ if [[ $base_prefix == $CONDA_PREFIX ]]; then
     fi
 fi
 
-if [[ $env_owner != $(whoami) ]]; then
+if [[ $env_owner != $(whoami) ]] && [[ $CONDA_PREFIX != ${sys_env_root}* ]]; then
     kernel_name=${env_owner}-$env_name
 else
     kernel_name=$env_name
