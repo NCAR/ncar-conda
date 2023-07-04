@@ -3,7 +3,7 @@
 #   This utility script can be used to update a particular deployed
 #   environment, specified by name as the argument
 #
-#   Last Revised:   19:04, 03 Jul 2023
+#   Last Revised:   20:07, 03 Jul 2023
 #
 
 function usage {
@@ -115,8 +115,19 @@ else
 fi
 
 [[ $quiet_mode != true ]] && echo "Retrieving current state of this environment ..."
-conda env export $conda_opts > .tmp.envdump
+env_dump="$(conda env export $conda_opts)"
 found_something=0
+
+# Check names for difference
+yaml_name=$(sed -n 's/^name: \(.*\)/\1/p' $yaml_file)
+env_name=$(sed -n 's/^name: \(.*\)/\1/p' <<< "$env_dump")
+if [[ $yaml_name != $env_name ]]; then
+cat << EOF
+Warning: Environment names don't match. ($yaml_name != $env_name)
+         Comparing different environments may produce poor results!
+EOF
+sleep 5
+fi
 
 # Pretty colors
 if [[ $use_colors == true ]]; then
@@ -124,16 +135,16 @@ if [[ $use_colors == true ]]; then
 fi
 
 function compare_states {
-    diff -W100 -y .tmp.yaml .tmp.env | grep '[|<>]' > .tmp.diff
+    diff_out="$(diff -W100 -y <(echo "$yaml_sub") <(echo "$env_sub") | grep '[|<>]')"
 
-    if [[ $(wc -l < .tmp.diff) -gt 0 ]]; then
+    if [[ -n $diff_out ]]; then
         if [[ $found_something -eq 0 ]]; then
             found_something=1
             [[ $quiet_mode != true ]] && clear
         fi
 
         if [[ $quiet_mode != true ]]; then
-            printf "\n%-47s %s\n" "YAML $1" "Environment $1"
+            printf "\n %-47s %s\n" "YAML $1" "Environment $1"
             printf -- '-%.0s' {1..100}
             echo
             while IFS= read line; do
@@ -144,31 +155,32 @@ function compare_states {
                 else
                     echo -e "${bcol}$line${dcol}"
                 fi
-            done < .tmp.diff
+            done <<< "$diff_out"
         fi
     fi
 }
 
 # Extract elements from YAML files
-awk '/channels:/{ f = 1; next } /.*:/{ f = 0 } f' $yaml_file | sort > .tmp.yaml
-awk '/channels:/{ f = 1; next } /.*:/{ f = 0 } f' .tmp.envdump | sort > .tmp.env
+yaml_sub="$(awk '/channels:/{ f = 1; next } /.*:/{ f = 0 } f' $yaml_file | sort | sed 's/^[ ]*-//')"
+env_sub="$(awk '/channels:/{ f = 1; next } /.*:/{ f = 0 } f' <<< "$env_dump" | sort | sed 's/^[ ]*-//')"
 
 compare_states Channels
 
-awk '/dependencies:/{ f = 1; next } /.*:/{ f = 0 } f' $yaml_file | sort > .tmp.yaml
-awk '/dependencies:/{ f = 1; next } /.*:/{ f = 0 } f' .tmp.envdump | sort > .tmp.env
+yaml_sub="$(awk '/dependencies:/{ f = 1; next } /.*:/{ f = 0 } f' $yaml_file | sort | sed 's/^[ ]*-//')"
+env_sub="$(awk '/dependencies:/{ f = 1; next } /.*:/{ f = 0 } f' <<< "$env_dump" | sort | sed 's/^[ ]*-//')"
 
 compare_states Packages
 
-if [[ $quiet_mode != true ]] && [[ $found_something -ne 0 ]]; then
-    echo -e "\n  Legend:"
-    echo -e "    ${gcol}>${dcol} - ${gcol}Only in current environment${dcol}"
-    echo -e "    ${ycol}<${dcol} - ${ycol}Only in YAML file${dcol}"
-    echo -e "    ${bcol}|${dcol} - ${bcol}Version difference${dcol}\n"
+if [[ $quiet_mode != true ]]; then
+    if [[ $found_something -ne 0 ]]; then
+        echo -e "\n  Legend:"
+        echo -e "    ${gcol}>${dcol} - ${gcol}Only in current environment${dcol}"
+        echo -e "    ${ycol}<${dcol} - ${ycol}Only in YAML file${dcol}"
+        echo -e "    ${bcol}|${dcol} - ${bcol}Version difference${dcol}\n"
+    else
+        echo " - No differences detected"
+    fi
 fi
-
-# Clean up
-rm .tmp.envdump .tmp.env .tmp.yaml
 
 # Return 1 if differences are found
 exit $found_something
