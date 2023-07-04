@@ -1,0 +1,52 @@
+name: r-4.3
+channels:
+  - conda-forge
+  - r
+dependencies:
+  - r=4.3
+  - r-irkernel
+  - ca-certificates
+  - openssl
+  - r-terra
+  - r-rgdal
+  - r-rnetcdf
+  - r-ggplot2
+  - r-lubridate
+  - r-randomforest
+  - r-rgooglemaps
+  - r-lava
+  - r-beanplot
+  - r-cdft
+  - r-corrplot
+  - r-dt
+  - r-ellipse
+  - r-energy
+  - r-fields
+  - r-fitdistrplus
+  - r-moments
+  - r-pcict
+  - r-proj
+  - r-prroc
+  - r-pscl
+  - r-qgraph
+  - r-quantreg
+  - r-roxygen2
+  - r-udunits2
+  - r-zoo
+  - r-clipr
+  - r-readr
+  - r-curl
+  - r-lmoments
+  - r-statmod
+  - r-zip
+  - r-distillery
+  - r-nloptr
+  - r-extremes
+  - r-climate4r.climdex
+  - r-climate4r.datasets
+  - r-climate4r.indices
+  - r-climate4r.udg
+  - r-climate4r.value
+  - r-s2dv
+  - jupyter_client
+prefix: /glade/u/apps/opt/conda/envs/r-4.3
