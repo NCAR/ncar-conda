@@ -24,27 +24,29 @@ for env_type in $env_types; do
     mkdir -p $env_type/versions
 
     for env_name in $sub_list; do
-        update_yaml=n
+        echo " - $env_name"
 
-        if [[ ! -f $env_type/${env_name}.yml ]]; then
-            echo " - exporting environment packages: $env_name"
-            conda env export --from-history -n $env_name > $env_type/${env_name}.yml
+        if [[ ! -f $env_type/versions/${env_name}.yml ]]; then
+            echo "   Exporting environment versions ..."
+            conda env export -n $env_name > $env_type/versions/${env_name}.yml
         else
-            echo "YAML file exists for $env_name. Checking for differences ..."
+            echo "   YAML file exists for $env_name. Checking for differences ..."
 
             if ! $repo_root/bin/compare_env_yaml -q -f $env_name; then
-                read -e -p "Differences detected! Overwrite existing YAML file (y/N)? " update_yaml
+                read -e -p "   Differences detected! Overwrite existing YAML file (y/N)? " update_yaml
+                update_yaml=${update_yaml,,}
 
-                if [[ yes == ${update_yaml,,}* ]]; then
-                    echo " - exporting environment packages: $env_name"
-                    conda env export --from-history -n $env_name > $env_type/${env_name}.yml
+                if [[ yes == ${update_yaml:-no}* ]]; then
+                    echo "   Exporting environment versions ..."
+                    conda env export -n $env_name > $env_type/versions/${env_name}.yml
                 fi
             fi
         fi
         
-        if [[ ! -f $env_type/versions/${env_name}.yml ]] || [[ yes == ${update_yaml,,}* ]]; then
-            echo " - exporting environment versions: $env_name"
-            conda env export -n $env_name > $env_type/versions/${env_name}.yml
+        if [[ ! -f $env_type/${env_name}.yml ]] || [[ yes == ${update_yaml:-no}* ]]; then
+            echo "   Exporting environment history ..."
+            conda env export --from-history -n $env_name > $env_type/${env_name}.yml
+            unset update_yaml
         fi
     done
 done
