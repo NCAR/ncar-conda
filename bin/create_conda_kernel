@@ -6,7 +6,7 @@
 #   nor does it leave out the sourced environment files.
 #
 #   Author:         Brian Vanderwende
-#   Last Revised:   07:43, 04 Jul 2023
+#   Last Revised:   07:48, 04 Jul 2023
 #
 
 function usage {
@@ -90,12 +90,16 @@ else
     exit 1
 fi
 
+env_name=${CONDA_PREFIX##*/}
+
 # Check interpreter or use Python
 if [[ -n $kernel_type ]]; then
     if [[ -z ${kbins[${kernel_type,,}]} ]]; then
         >&2 echo "Error: Unrecognized kernel type == $kernel_type"
         exit 1
     fi
+elif [[ $env_name == r-* ]]; then
+    kernel_type=r
 else
     kernel_type=python
 fi
@@ -117,7 +121,6 @@ case ${kernel_type,,} in
 esac
 
 # Name scheme for kernel is owner-name; display name is environment name or custom
-env_name=${CONDA_PREFIX##*/}
 env_owner=$(stat -c "%U" $CONDA_PREFIX)
 base_prefix=$(conda env list | awk '$1 == "base" { print $2 }')
 
