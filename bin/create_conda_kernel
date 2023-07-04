@@ -6,7 +6,7 @@
 #   nor does it leave out the sourced environment files.
 #
 #   Author:         Brian Vanderwende
-#   Last Revised:   07:48, 04 Jul 2023
+#   Last Revised:   13:29, 04 Jul 2023
 #
 
 function usage {
@@ -28,6 +28,7 @@ EOF
 
 # Path for NCAR system envs
 sys_env_root=/glade/u/apps/opt/conda/envs
+repo_root="$( cd "$(dirname "$0")"/.. ; pwd )"
 
 # Kernel types supported
 declare -A kbins
@@ -49,7 +50,7 @@ fi
 # Process arguments
 while [[ $# -gt 0 ]]; do
     if [[ ! -z $read_value ]]; then
-        declare "$read_value=$1"
+        declare $read_value="$1"
         unset read_value
     else
         case $1 in
@@ -58,7 +59,7 @@ while [[ $# -gt 0 ]]; do
                 exit 0
                 ;;
             -n|--name*)
-                [[ $1 == *=* ]] && display_name=${1#*=} || read_value=display_name
+                [[ $1 == *=* ]] && display_name="${1#*=}" || read_value=display_name
                 ;;
             -p|--prefix*)
                 [[ $1 == *=* ]] && kernel_path=${1#*=} || read_value=kernel_path
@@ -171,7 +172,7 @@ fi
 
 case $kernel_type in
     python)
-        python -m ipykernel install ${prefix_arg:---user} --name $kernel_name --display-name ${display_name:-$kernel_name} > /dev/null
+        python -m ipykernel install ${prefix_arg:---user} --name $kernel_name --display-name "${display_name:-$kernel_name}" > /dev/null
         ;;
     r)
         R -e "library(IRkernel)" -e "IRkernel::installspec($prefix_arg name = '$kernel_name', displayname = '${display_name:-$kernel_name}')" > /dev/null
@@ -204,6 +205,14 @@ chmod +x $kernel_path/launcher
 
 # Modify kernel json spec to use launcher
 sed -i "s|${CONDA_PREFIX}/${kbins[${kernel_type,,}]}|$kernel_path/launcher|" $kernel_path/kernel.json
+
+# Use custom assets if appropriate
+case $env_name in
+    npl-*)
+        rm $kernel_path/logo-*
+        cp $repo_root/etc/logos/npl/* $kernel_path
+        ;;
+esac
 
 cat << EOF
 
