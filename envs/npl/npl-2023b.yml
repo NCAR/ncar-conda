@@ -24,8 +24,8 @@ dependencies:
   - widgetsnbextension
   - dask-labextension
   - geocat-comp
-  - netcdf4
-  - h5py
+  - h5py=*=mpi*
+  - netcdf4=*=mpi*
   - cf-units
   - numexpr
   - pygraphviz
@@ -88,4 +88,5 @@ dependencies:
   - intake-esm
   - intake-xarray
   - flox
+  - libblas=*=*blis
 prefix: /glade/u/apps/opt/conda/envs/npl-2023b
