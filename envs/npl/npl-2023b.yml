@@ -89,4 +89,5 @@ dependencies:
   - intake-xarray
   - flox
   - libblas=*=*blis
+  - dask-mpi
 prefix: /glade/u/apps/opt/conda/envs/npl-2023b

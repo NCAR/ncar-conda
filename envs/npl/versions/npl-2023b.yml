@@ -18,7 +18,7 @@ dependencies:
   - appdirs=1.4.4=pyh9f0ad1d_0
   - argon2-cffi=21.3.0=pyhd8ed1ab_0
   - argon2-cffi-bindings=21.2.0=py310h5764c6d_3
-  - arm_pyart=1.15.1=py310h2372a71_0
+  - arm_pyart=1.15.0=py310h1fa729e_0
   - asciitree=0.3.3=py_2
   - astroid=2.15.5=py310hff52083_0
   - astropy=5.3.1=py310h278f3c1_0
@@ -98,6 +98,7 @@ dependencies:
   - dask-core=2023.7.0=pyhd8ed1ab_0
   - dask-jobqueue=0.8.2=pyhd8ed1ab_0
   - dask-labextension=6.1.0=pyhd8ed1ab_0
+  - dask-mpi=2022.4.0=pyh458ca06_2
   - dataclasses=0.8=pyhc8e2a94_3
   - datashader=0.15.1=pyhd8ed1ab_0
   - datashape=0.5.4=py_1
@@ -381,7 +382,7 @@ dependencies:
   - overrides=7.3.1=pyhd8ed1ab_0
   - p11-kit=0.24.1=hc5aa10d_0
   - packaging=23.1=pyhd8ed1ab_0
-  - pandas=1.5.3=py310h9b08913_1
+  - pandas=2.0.3=py310h7cbd5c2_1
   - pandocfilters=1.5.0=pyhd8ed1ab_0
   - panel=1.1.1=pyhd8ed1ab_0
   - pango=1.50.14=heaa33ce_1
