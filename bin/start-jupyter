@@ -1,0 +1,208 @@
+#!/bin/bash
+#
+#   Author:         Brian Vanderwende
+#   Last Revised:   21:47, 13 Jul 2023
+#
+
+cat << EOF
+================================================================================
+   start-jupyter: starting and accessing a Jupyter server using SSH tunneling
+================================================================================
+
+Heads up - this method has been deprecated in favor of our JupyterHub service,
+accessible at https://jupyterhub.hpc.ucar.edu. This script can be used in the
+event that the Hub is down, or if you want to use a problematic lab extension
+that is not currently supported by our JupyterHub. Otherwise, we recommend using
+JupyterHub!
+
+EOF
+
+# Check if Jupyter is available
+if ! which jupyter >& /dev/null; then
+>&2 cat << EOF
+Error: jupyter command is not available in your environment. Use Conda to
+       activate an environment with jupyter installed.
+       (run 'module load conda' to access Conda on NCAR systems)
+
+EOF
+exit 1
+fi
+
+# Check if running on login nodes
+if [[ -z $PBS_JOBID ]]; then
+cat << EOF
+Most Jupyter Notebook workflows use more memory (and sometimes CPU time)
+than is permitted on the login nodes. For fair use and performance considerations,
+please consider starting this server within an interactive job instead.
+
+EOF
+
+read -p "Start server on login node anyway (y/N)? " bypass_check
+bypass_check=${bypass_check:-no}
+echo
+[[ yes != ${bypass_check,,}* ]] && exit 1
+fi
+
+# Create trap to kill notebook when user is done
+function kill_server {
+	if [[ $server_pid != -1 ]]; then
+    	echo -e "\nKilling JupyterLab Server with PID = $server_pid ..."
+		kill $server_pid >& /dev/null
+		exit 0
+	else
+		exit 1
+	fi
+}
+
+function error_message {
+    >&2 echo "Error: $1"
+    >&2 echo "       Check log file at $log_file"
+    kill_server
+}
+
+server_pid=-1
+trap kill_server SIGHUP SIGINT SIGTERM
+
+# Define function to detect corrupted JSON files
+function check_json {
+python << EOF
+import glob
+import os
+import json
+
+home = os.environ['HOME']
+dirs = ['.jupyter/nbconfig/','.local/share/jupyter/runtime']
+
+for d in dirs:
+    for p in glob.glob(os.path.join(home, d, '*.json')):
+        try:
+            with open(p, 'r') as f:
+                json.load(f)
+        except json.decoder.JSONDecodeError:
+            print(p)
+EOF
+}
+
+# Begin server creation
+log_dir=${SCRATCH:-/glade/scratch/${USER}}/.jupyter-lab
+log_file=${log_dir}/log.$(date +%Y%m%dT%H%M%S)
+mkdir -p $log_dir
+
+echo "Logging this session in $log_file"
+
+server_host=$(hostname)
+jupyter lab $@ --no-browser --ip=$server_host >& $log_file &
+server_pid=$!
+ELAPSED=0
+
+echo -e "\nStarting JupyterLab server, please wait ..."
+
+while ! $(grep -Fq -e "ERROR" -e "is running at" $log_file >& /dev/null); do
+    sleep 1
+    ELAPSED=$(($ELAPSED+1))
+
+    if [[ $ELAPSED -gt 30 ]]; then
+        error_message "Could not create server (TIMEOUT)"
+    fi
+done
+
+# Restrict permissions on log files
+chmod -R u=rwX,g=,o= $log_dir
+setfacl -R -m g:csgteam:rX $log_dir
+
+# Get notebook settings
+list_output=$(jupyter server list --json 2>&1)
+
+# If error is encountered, check for corrupted JSON file
+if [[ $? != 0 ]]; then
+    bad_files=$(check_json)
+
+    if [[ -n $bad_files ]]; then
+        for bad_file in $bad_files; do
+            rm $bad_file
+        done
+
+        # Try again and if we fail again, quit
+        list_output=$(jupyter server list --json 2>&1)
+
+        if [[ $? != 0 ]]; then
+            >&2 echo "$list_output"
+            error_message "Command 'jupyter server list' failed"
+        fi
+    else
+        >&2 echo "$list_output"
+        error_message "Command 'jupyter server list' failed"
+    fi
+fi
+
+# Search for specific server with our PID
+list_output="$(grep $server_pid <<< "$list_output")"
+json_fields="'{} {} {} {}'.format(d['port'],d['url'],d['password'],d['token'])"
+data_subset=$(python -c "import sys, json; d = json.load(sys.stdin); print($json_fields)" <<< "$list_output")
+read server_port server_address use_password server_token <<< $data_subset
+
+case $NCAR_HOST in
+    cheyenne)
+        ssh_cmd="ssh -N -l $USER -L 8888:${server_host}:${server_port} cheyenne.ucar.edu"
+        ;;
+    dav|casper)
+        ssh_cmd="ssh -N -l $USER -L 8888:${server_host}:${server_port} ${server_host}.ucar.edu"
+        ;;
+    gust|derecho)
+        ssh_cmd="ssh -N -l $USER -L 8888:${server_host}:${server_port} ${NCAR_HOST}.hpc.ucar.edu"
+        ;;
+    *)
+        unknown_frontend=$(hostname -i)
+        echo "Warnign: Unrecognized host ($unknown_host)... use with caution!"
+        ssh_cmd="ssh -N -l $USER -L 8888:${server_host}:${server_port} $unknown_frontend"
+        ;;
+esac
+
+clear
+cat << EOF
+Run the following command in a new terminal on your local desktop or laptop:
+
+    $ssh_cmd
+
+Log in with your username and two-factor authentication. Leave this terminal
+window open.
+
+Then open a local browser and go to http://localhost:8888.
+
+EOF
+
+function token_message {
+cat << EOF
+The Jupyter web interface will ask you for this token:
+
+    $server_token
+
+Note that anyone to whom you give the token can access (and modify/delete)
+files in your GLADE spaces, regardless of the file permissions you
+have set. SHARE TOKENS RARELY AND WISELY!
+EOF
+}
+
+function unprotected_warning {
+cat << EOF
+WARNING: This server is not using token or password authentication. Running
+an unprotected server is dangerous, as any other user could tunnel to
+this port and gain access to your GLADE file spaces. Consider stopping
+this server and restarting with an authentication method active.
+EOF
+}
+
+if [[ $use_password == "True" ]]; then
+    echo "The Jupyter web interface will ask you for your previously-chosen password."
+elif [[ -n $server_token ]]; then
+    token_message
+else
+    tput setaf 1
+    unprotected_warning
+    tput sgr 0
+fi
+
+echo -e "\nTo stop the server, press Ctrl/Cmd-C."
+
+# Wait for user kill command
+sleep inf
