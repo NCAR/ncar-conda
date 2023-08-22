@@ -55,6 +55,7 @@ dependencies:
   - boto3=1.28.2=pyhd8ed1ab_0
   - botocore=1.31.2=pyhd8ed1ab_0
   - bottleneck=1.3.7=py310h0a54255_0
+  - branca=0.6.0=pyhd8ed1ab_0
   - brotli=1.0.9=h166bdaf_9
   - brotli-bin=1.0.9=h166bdaf_9
   - brotlipy=0.7.0=py310h5764c6d_1005
@@ -62,14 +63,14 @@ dependencies:
   - bzip2=1.0.8=h7f98852_4
   - c-ares=1.19.1=hd590300_0
   - c-blosc2=2.9.3=hb4ffafa_0
-  - ca-certificates=2023.5.7=hbcca054_0
+  - ca-certificates=2023.7.22=hbcca054_0
   - cached-property=1.5.2=hd8ed1ab_1
   - cached_property=1.5.2=pyha770c72_1
   - cairo=1.16.0=hbbf8b49_1016
   - cartopy=0.21.1=py310h7eb24ba_1
   - cdsapi=0.6.1=pyhd8ed1ab_0
   - celluloid=0.2.0=pyhd8ed1ab_0
-  - certifi=2023.5.7=pyhd8ed1ab_0
+  - certifi=2023.7.22=pyhd8ed1ab_0
   - cf-units=3.2.0=py310h278f3c1_0
   - cf_xarray=0.8.2=pyhd8ed1ab_0
   - cffi=1.15.1=py310h255011f_3
@@ -128,6 +129,7 @@ dependencies:
   - fiona=1.9.4=py310h111440e_0
   - flit-core=3.9.0=pyhd8ed1ab_0
   - flox=0.7.2=pyhd8ed1ab_0
+  - folium=0.14.0=pyhd8ed1ab_0
   - font-ttf-dejavu-sans-mono=2.37=hab24e00_0
   - font-ttf-inconsolata=3.000=h77eed37_0
   - font-ttf-source-code-pro=2.038=h77eed37_0
@@ -377,7 +379,7 @@ dependencies:
   - opencv=4.7.0=py310hff52083_6
   - openh264=2.3.1=hcb278e6_2
   - openjpeg=2.5.0=hfec8fc6_2
-  - openssl=3.1.1=hd590300_1
+  - openssl=3.1.2=hd590300_0
   - orc=1.8.4=h2f23424_0
   - overrides=7.3.1=pyhd8ed1ab_0
   - p11-kit=0.24.1=hc5aa10d_0
