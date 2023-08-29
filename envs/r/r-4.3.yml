@@ -49,4 +49,5 @@ dependencies:
   - r-climate4r.value
   - r-s2dv
   - jupyter_client
+  - r-dataretrieval
 prefix: /glade/u/apps/opt/conda/envs/r-4.3
