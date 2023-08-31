@@ -9,6 +9,21 @@ repo_root="$( cd "$(dirname "$0")"/.. ; pwd )"
 $repo_root/util/check_repo || exit 1
 cd $repo_root/envs
 
+# Check for conda
+if ! which conda >& /dev/null; then
+    >&2 echo "Error: conda not available in this shell. Please load conda module to continue."
+    exit 1
+fi
+
+# Check for conda channel settings in home
+if [[ -f ~/.condarc ]]; then
+    if grep -q "^channels:" ~/.condarc; then
+        >&2 echo "Error: Custom channels detected in ~/.condarc. These settings will affect YAML outputs."
+        >&2 echo "       Remove these settings and retry."
+        exit 1
+    fi
+fi
+
 echo "Querying Conda environments on system ..."
 
 # Get list of environment types
@@ -27,10 +42,10 @@ for env_type in $env_types; do
         echo " - $env_name"
 
         if [[ ! -f $env_type/versions/${env_name}.yml ]]; then
-            read -e -p "   Not current tracked! Add YAML file to roster (y/N)? " add_yaml
-            add_yaml=${add_yaml,,}
+            read -e -p "   Not current tracked! Add YAML file to roster (y/N)? " update_yaml
+            update_yaml=${update_yaml,,}
 
-            if [[ yes == ${add_yaml:-no}* ]]; then
+            if [[ yes == ${update_yaml:-no}* ]]; then
                 echo "   Exporting environment versions ..."
                 conda env export -n $env_name > $env_type/versions/${env_name}.yml
             fi
@@ -48,7 +63,7 @@ for env_type in $env_types; do
             fi
         fi
         
-        if [[ ! -f $env_type/${env_name}.yml ]] || [[ yes == ${update_yaml:-no}* ]]; then
+        if [[ yes == ${update_yaml:-no}* ]]; then
             echo "   Exporting environment history ..."
             conda env export --from-history -n $env_name > $env_type/${env_name}.yml
             unset update_yaml
