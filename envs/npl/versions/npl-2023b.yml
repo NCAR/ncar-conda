@@ -171,6 +171,7 @@ dependencies:
   - gsl=2.7=he838d99_0
   - gst-plugins-base=1.22.3=h938bd60_1
   - gstreamer=1.22.3=h977cf35_1
+  - gsw=3.6.17=py310h278f3c1_0
   - gtk2=2.24.33=h90689f9_2
   - gts=0.7.6=h977cf35_4
   - h5netcdf=1.2.0=pyhd8ed1ab_0

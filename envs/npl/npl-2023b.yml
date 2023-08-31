@@ -91,4 +91,5 @@ dependencies:
   - libblas[build=*blis]
   - dask-mpi
   - folium
+  - gsw
 prefix: /glade/u/apps/opt/conda/envs/npl-2023b
