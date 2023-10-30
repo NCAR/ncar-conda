@@ -1,0 +1,115 @@
+#!/bin/bash
+#
+#   This script installs a kernel for a specified version of Matlab
+#
+
+set -e
+
+# Settings
+my_dir="$( cd "$(dirname "$0")" ; pwd )"
+ncarenv_version=$(module -t list |& grep ncarenv | cut -d/ -f2)
+matlab_version=$(module -t list |& grep matlab | cut -d/ -f2)
+
+if [[ -z $matlab_version ]]; then
+    >&2 echo "Error: Please load desired Matlab module first!"
+    exit 1
+fi
+
+if [[ $CONDA_PREFIX != *jhk-* ]] && [[ $CONDA_PREFIX != *jhub-* ]]; then
+    >&2 echo "Error: Please load a JupyterHub Kernel conda environment first!"
+    exit 1
+fi
+
+if [[ $(whoami) == csgteam ]]; then
+    export hub_kernels_private=/ncar/usr/jupyterhub/kernels
+    export hub_kernels_public=/ncar/usr/jupyterhub.hpc.ucar.edu/share/kernels
+else
+    export hub_kernels_private=$HOME/.local/share/jupyter/kernels
+    export kernel_prefix="ktest-"
+fi
+
+kernel_name=${kernel_prefix}matlab-${matlab_version,,}
+kernel_file=$hub_kernels_private/$kernel_name/kernel.json
+
+module -q purge
+module -q load ncarenv/$ncarenv_version matlab/$matlab_version
+
+# Install the system- and version-specific engine
+# See https://pypi.org/project/matlabengine/#history for version mapping
+declare -A me_map
+me_map[R2023a]=9.14.*
+
+function install_engine {
+    py_vers=$(python -V | sed 's/.* \(.*\)\..*/\1/')
+    export PYTHONPATH=$engine_prefix/lib/python${py_vers}/site-packages:$PYTHONPATH
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$NCAR_ROOT_MATLAB/bin/glnxa64
+
+    pip install --no-cache-dir --prefix=$engine_prefix matlabengine==${me_map[$matlab_version]}
+}
+
+engine_prefix=$CONDA_PREFIX/kernel-packages/$NCAR_HOST/matlab/$matlab_version
+
+if [[ ! -d $engine_prefix ]]; then
+    echo "*** Installing Matlab engine for $NCAR_HOST ***"
+    install_engine
+else
+    echo "Matlab engine exists for $NCAR_HOST; skipping step ..."
+fi
+
+# --- CREATE KERNEL LAUNCHER
+
+function create_kernel_launcher {
+cat > $1 << EOF
+#!/bin/bash
+
+module purge -f
+module load ncarenv/\$1 conda matlab/\$2
+
+conda activate $CONDA_PREFIX
+
+engine_path=\$(echo \$CONDA_PREFIX/kernel-packages/\$NCAR_HOST/matlab/\$2/lib/python*/site-packages)
+export PYTHONPATH=\$engine_path
+export LD_PRELOAD=\$CONDA_PREFIX/lib/libstdc++.so.6
+shift; shift
+
+exec python -m matlab_kernel -f \$@
+EOF
+
+chmod +x $1
+}
+
+if [[ ! -f $CONDA_PREFIX/kernel-launchers/matlab ]]; then
+    echo "*** Creating Matlab kernel launcher ***"
+    mkdir -p $CONDA_PREFIX/kernel-launchers
+    create_kernel_launcher $CONDA_PREFIX/kernel-launchers/matlab
+else
+    echo "Launcher exists; skipping step ..."
+fi
+
+# --- CREATE KERNEL
+
+function create_kernel {
+cat > $1 << EOF
+{
+    "argv": ["$CONDA_PREFIX/kernel-launchers/matlab",
+        "$LMOD_FAMILY_ENV_VERSION",
+        "$matlab_version",
+        "{connection_file}"],
+    "display_name": "Matlab $matlab_version${kernel_prefix:+ (${kernel_prefix/-})}",
+    "language": "matlab",
+    "mimetype": "text/x-octave",
+    "name": "$kernel_name"
+}
+EOF
+}
+
+if [[ ! -f $kernel_file ]]; then
+    echo "*** Creating kernel file for $matlab_version ***"
+    cp -r $my_dir/templates/matlab $hub_kernels_private/$kernel_name
+    create_kernel $kernel_file
+else
+    echo "Kernel exists; skipping step ..."
+fi
+
+# Preserve script
+cp $0 $CONDA_PREFIX/ncar

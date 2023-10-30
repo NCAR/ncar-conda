@@ -1,0 +1,106 @@
+#!/bin/bash
+#
+#   This script installs a kernel for a specified version of Julia
+#
+
+set -e
+
+# Settings
+my_dir="$( cd "$(dirname "$0")" ; pwd )"
+ncarenv_version=$(module -t list |& grep ncarenv | cut -d/ -f2)
+julia_version=$(module -t list |& grep julia | cut -d/ -f2)
+
+if [[ -z $julia_version ]]; then
+    >&2 echo "Error: Please load desired Julia module first!"
+    exit 1
+fi
+
+if [[ $CONDA_PREFIX != *jhk-* ]] && [[ $CONDA_PREFIX != *jhub-* ]]; then
+    >&2 echo "Error: Please load a JupyterHub Kernel conda environment first!"
+    exit 1
+fi
+
+if [[ $(whoami) == csgteam ]]; then
+    export hub_kernels_private=/ncar/usr/jupyterhub/kernels
+    export hub_kernels_public=/ncar/usr/jupyterhub.hpc.ucar.edu/share/kernels
+else
+    export hub_kernels_private=$HOME/.local/share/jupyter/kernels
+    export kernel_prefix="ktest-"
+fi
+
+kernel_name=${kernel_prefix}julia-${julia_version,,}
+kernel_file=$hub_kernels_private/$kernel_name/kernel.json
+
+module -q purge
+module -q load ncarenv/$ncarenv_version julia/$julia_version
+
+# Install the Julia kernel package
+function install_jpkg {
+    julia -e 'using Pkg; Pkg.add("IJulia")'
+}
+
+export JULIA_DEPOT_PATH=$CONDA_PREFIX/julia/$NCAR_HOST
+
+if [[ ! -d $JULIA_DEPOT_PATH ]]; then
+    echo "*** Installing IJulia package for $NCAR_HOST ***"
+    install_jpkg
+else
+    echo "IJulia exists for $NCAR_HOST; skipping step ..."
+fi
+
+# --- CREATE KERNEL LAUNCHER
+
+function create_kernel_launcher {
+cat > $1 << EOF
+#!/bin/bash
+
+module purge -f
+module load ncarenv/\$1 conda julia/\$2
+
+conda activate $CONDA_PREFIX
+
+export JULIA_DEPOT_PATH=\$CONDA_PREFIX/julia/\$NCAR_HOST
+shift; shift
+
+exec julia -i --color=yes --project=@. \$JULIA_DEPOT_PATH/packages/IJulia/*/src/kernel.jl "\$@"
+EOF
+
+chmod +x $1
+}
+
+if [[ ! -f $CONDA_PREFIX/kernel-launchers/julia ]]; then
+    echo "*** Creating Julia kernel launcher ***"
+    mkdir -p $CONDA_PREFIX/kernel-launchers
+    create_kernel_launcher $CONDA_PREFIX/kernel-launchers/julia
+else
+    echo "Launcher exists; skipping step ..."
+fi
+
+# --- CREATE KERNEL
+
+function create_kernel {
+cat > $1 << EOF
+{
+    "argv": ["$CONDA_PREFIX/kernel-launchers/julia",
+        "$LMOD_FAMILY_ENV_VERSION",
+        "$julia_version",
+        "{connection_file}"],
+    "display_name": "Julia $julia_version${kernel_prefix:+ (${kernel_prefix/-})}",
+    "language": "julia",
+    "interrupt_mode": "signal",
+    "env": {},
+    "name": "$kernel_name"
+}
+EOF
+}
+
+if [[ ! -f $kernel_file ]]; then
+    echo "*** Creating kernel file for $julia_version ***"
+    cp -r $my_dir/templates/julia $hub_kernels_private/$kernel_name
+    create_kernel $kernel_file
+else
+    echo "Kernel exists; skipping step ..."
+fi
+
+# Preserve script
+cp $0 $CONDA_PREFIX/ncar

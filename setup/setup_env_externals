@@ -1,0 +1,45 @@
+#!/bin/bash
+#
+#   This script creates a new environment for running non-Python
+#   Jupyter language kernels from our module environment
+#
+
+set -e
+umask 022
+
+# Settings
+env_vers=$(date +%y%m%d)
+my_dir="$( cd "$(dirname "$0")" ; pwd )"
+local_kernels=$HOME/.local/share/jupyter/kernels
+
+if [[ $(whoami) == csgteam ]]; then
+    env_dir=/glade/u/apps/opt/jhub-kernels/$env_vers
+else
+    env_dir=/glade/work/$USER/conda-envs/jhk-$env_vers
+fi
+
+function create_env {
+    py_vers=3.9
+
+    # Create base environment
+    mamba create -p $env_dir python=$py_vers ipython metakernel wurlitzer numpy
+    conda activate $env_dir
+
+    # Add version-agnostic packages for specific programs
+    pip --no-cache-dir install matlab_kernel
+
+    mkdir -p $env_dir/ncar
+    cp $0 $env_dir/ncar
+}
+
+module purge
+module load conda
+
+if [[ ! -d $env_dir ]]; then
+    echo "Creating conda env at $env_dir ..."
+    create_env
+else
+    echo "Conda environment exists; skipping ..."
+fi
+
+mkdir -p $local_kernels
