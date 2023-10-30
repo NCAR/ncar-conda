@@ -108,7 +108,7 @@ dependencies:
   - numpy=1.25.0=py311h64a7726_0
   - openjdk=20.0.0=h8e330f5_0
   - openjpeg=2.5.0=hfec8fc6_2
-  - openssl=3.1.2=hd590300_0
+  - openssl=3.1.3=hd590300_0
   - pandoc=2.19.2=h32600fe_2
   - pango=1.50.14=heaa33ce_1
   - pcre2=10.40=hc3806b6_0
@@ -129,6 +129,7 @@ dependencies:
   - r-akima=0.6_3.4=r43h61816a4_2
   - r-askpass=1.1=r43h57805ef_4
   - r-assertthat=0.2.1=r43hc72bb7e_4
+  - r-automap=1.1_9=r43hc72bb7e_1
   - r-backports=1.4.1=r43h57805ef_2
   - r-base=4.3.0=hfabd6f2_1
   - r-base64enc=0.1_3=r43h57805ef_1006
@@ -151,6 +152,7 @@ dependencies:
   - r-checkmate=2.2.0=r43h57805ef_1
   - r-circstats=0.2_6=r43hd8ed1ab_1004
   - r-class=7.3_22=r43h57805ef_1
+  - r-classint=0.4_10=r43h61816a4_0
   - r-cli=3.6.1=r43ha503ecb_1
   - r-climate4r.climdex=0.2.3=r43ha770c72_0
   - r-climate4r.datasets=0.0.1=r43ha770c72_2
@@ -175,6 +177,7 @@ dependencies:
   - r-curl=5.0.1=r43hf9611b0_0
   - r-data.table=1.14.8=r43h029312a_2
   - r-dataretrieval=2.7.13=r43h785f33e_1
+  - r-dbi=1.1.3=r43hc72bb7e_2
   - r-deldir=1.0_9=r43h61816a4_1
   - r-desc=1.4.2=r43hc72bb7e_2
   - r-diagram=1.6.5=r43ha770c72_2
@@ -200,6 +203,7 @@ dependencies:
   - r-fdrtool=1.2.17=r43h57805ef_2
   - r-fields=14.1=r43h61816a4_2
   - r-fitdistrplus=1.1_11=r43hc72bb7e_1
+  - r-fnn=1.1.3.2=r43ha503ecb_1
   - r-fontawesome=0.5.1=r43hc72bb7e_1
   - r-forcats=1.0.0=r43hc72bb7e_1
   - r-foreach=1.5.2=r43hc72bb7e_2
@@ -216,6 +220,7 @@ dependencies:
   - r-gower=1.0.1=r43h57805ef_1
   - r-gridextra=2.3=r43hc72bb7e_1005
   - r-gsl=2.1_8=r43h92c42c9_1
+  - r-gstat=2.1_1=r43h57805ef_1
   - r-gtable=0.3.3=r43hc72bb7e_1
   - r-gtools=3.9.4=r43h57805ef_1
   - r-hardhat=1.3.0=r43hc72bb7e_1
@@ -227,8 +232,11 @@ dependencies:
   - r-htmltools=0.5.5=r43ha503ecb_1
   - r-htmlwidgets=1.6.2=r43hc72bb7e_1
   - r-httr=1.4.7=r43hc72bb7e_0
+  - r-hydrogof=0.4_0=r43hc72bb7e_2
+  - r-hydrotsm=0.6_0=r43hc72bb7e_2
   - r-igraph=1.4.3=r43h9254619_1
   - r-interp=1.1_4=r43ha503ecb_1
+  - r-intervals=0.15.4=r43ha503ecb_0
   - r-ipred=0.9_14=r43h57805ef_1
   - r-irdisplay=1.1=r43hd8ed1ab_2
   - r-irkernel=1.3.2=r43h785f33e_1
@@ -255,6 +263,7 @@ dependencies:
   - r-loader.java=1.1.1=r43ha770c72_3
   - r-lsei=1.3_0=r43hd8f1df9_3
   - r-lubridate=1.9.2=r43h57805ef_2
+  - r-lwgeom=0.2_13=r43hdf85718_3
   - r-magrittr=2.0.3=r43h57805ef_2
   - r-mapproj=1.2.11=r43h57805ef_1
   - r-maps=3.4.1=r43h57805ef_2
@@ -321,6 +330,7 @@ dependencies:
   - r-recommended=4.3=r43hd8ed1ab_1006
   - r-rematch=1.0.1=r43hc72bb7e_1006
   - r-repr=1.1.6=r43h785f33e_1
+  - r-reshape=0.8.9=r43hc72bb7e_2
   - r-reshape2=1.4.4=r43ha503ecb_3
   - r-rgdal=1.6_6=r43h9b3901b_5
   - r-rgooglemaps=1.4.5.3=r43hc72bb7e_3
@@ -333,17 +343,22 @@ dependencies:
   - r-rpart=4.1.19=r43h57805ef_1
   - r-rprojroot=2.0.3=r43hc72bb7e_0
   - r-rstudioapi=0.14=r43hc72bb7e_2
+  - r-s2=1.1.4=r43h5eac2b3_1
   - r-s2dv=1.4.1=r43hc72bb7e_1
   - r-sass=0.4.6=r43ha503ecb_1
   - r-scales=1.2.1=r43hc72bb7e_2
+  - r-sf=1.0_14=r43ha912c30_0
+  - r-sftime=0.2_0=r43hc72bb7e_1
   - r-shape=1.4.6=r43ha770c72_2
   - r-signal=0.7_7=r43h61816a4_3
   - r-sp=1.6_1=r43h57805ef_1
+  - r-spacetime=1.3_0=r43hc72bb7e_1
   - r-spam=2.9_1=r43hd9ac46e_2
   - r-sparsem=1.81=r43h61816a4_2
   - r-spatial=7.3_16=r43h57805ef_1
   - r-specsverification=0.5_3=r43ha503ecb_3
   - r-squarem=2021.1=r43hc72bb7e_2
+  - r-stars=0.6_4=r43hc72bb7e_0
   - r-statmod=1.5.0=r43hd8f1df9_1
   - r-stringi=1.7.12=r43hc0c3e09_2
   - r-stringr=1.5.0=r43h785f33e_1
@@ -360,6 +375,7 @@ dependencies:
   - r-transformer=2.1.5=r43ha770c72_3
   - r-tzdb=0.4.0=r43ha503ecb_1
   - r-udunits2=0.13.2.1=r43h57805ef_2
+  - r-units=0.8_4=r43ha503ecb_0
   - r-utf8=1.2.3=r43h57805ef_1
   - r-uuid=1.1_0=r43h57805ef_2
   - r-value=2.2.4=r43ha770c72_0
@@ -369,8 +385,10 @@ dependencies:
   - r-viridislite=0.4.2=r43hc72bb7e_1
   - r-vroom=1.6.3=r43ha503ecb_1
   - r-withr=2.5.0=r43hc72bb7e_2
+  - r-wk=0.8.0=r43ha503ecb_0
   - r-xfun=0.39=r43ha503ecb_1
   - r-xml2=1.3.4=r43h1ad5fc0_2
+  - r-xts=0.13.1=r43h57805ef_1
   - r-yaml=2.3.7=r43h57805ef_1
   - r-zip=2.3.0=r43h57805ef_1
   - r-zoo=1.8_12=r43h57805ef_1

@@ -115,6 +115,7 @@ dependencies:
   - docrep=0.3.2=pyh44b312d_0
   - docutils=0.17.1=py310hff52083_3
   - eccodes=2.30.2=h73bf81c_1
+  - ecmwf_grib=1.14.7=2
   - entrypoints=0.4=pyhd8ed1ab_0
   - eofs=1.4.0=py_0
   - esmf=8.4.2=mpi_mpich_h8fb3fe9_101
@@ -380,7 +381,7 @@ dependencies:
   - opencv=4.7.0=py310hff52083_6
   - openh264=2.3.1=hcb278e6_2
   - openjpeg=2.5.0=hfec8fc6_2
-  - openssl=3.1.2=hd590300_0
+  - openssl=3.1.4=hd590300_0
   - orc=1.8.4=h2f23424_0
   - overrides=7.3.1=pyhd8ed1ab_0
   - p11-kit=0.24.1=hc5aa10d_0
