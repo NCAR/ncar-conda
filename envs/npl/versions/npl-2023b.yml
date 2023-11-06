@@ -115,7 +115,6 @@ dependencies:
   - docrep=0.3.2=pyh44b312d_0
   - docutils=0.17.1=py310hff52083_3
   - eccodes=2.30.2=h73bf81c_1
-  - ecmwf_grib=1.14.7=2
   - entrypoints=0.4=pyhd8ed1ab_0
   - eofs=1.4.0=py_0
   - esmf=8.4.2=mpi_mpich_h8fb3fe9_101

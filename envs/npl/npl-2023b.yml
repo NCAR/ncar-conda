@@ -92,5 +92,5 @@ dependencies:
   - dask-mpi
   - folium
   - gsw
-  - ecmwf_grib
+  - eccodes
 prefix: /glade/u/apps/opt/conda/envs/npl-2023b
