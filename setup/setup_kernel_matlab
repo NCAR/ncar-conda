@@ -62,7 +62,7 @@ function create_kernel_launcher {
 cat > $1 << EOF
 #!/bin/bash
 
-module purge -f
+module --force purge
 module load ncarenv/\$1 conda matlab/\$2
 
 conda activate $CONDA_PREFIX

@@ -40,7 +40,7 @@ function create_kernel_launcher {
 cat > $1 << EOF
 #!/bin/bash
 
-module purge -f
+module --force purge
 module load ncarenv
 
 if [[ \$NCAR_HOST == cheyenne ]]; then
