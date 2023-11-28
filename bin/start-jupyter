@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 #   Author:         Brian Vanderwende
-#   Last Revised:   21:47, 13 Jul 2023
+#   Last Revised:   18:08, 27 Nov 2023
 #
 
 cat << EOF
@@ -18,10 +18,10 @@ JupyterHub!
 EOF
 
 # Check if Jupyter is available
-if ! which jupyter >& /dev/null; then
+if ! which jupyter-lab >& /dev/null; then
 >&2 cat << EOF
-Error: jupyter command is not available in your environment. Use Conda to
-       activate an environment with jupyter installed.
+Error: The jupyter-lab command is not available in your environment. Use Conda
+       to activate an environment with jupyter installed.
        (run 'module load conda' to access Conda on NCAR systems)
 
 EOF
