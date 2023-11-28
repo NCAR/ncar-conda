@@ -13,7 +13,7 @@ dependencies:
   - bwidget=1.9.14=ha770c72_1
   - bzip2=1.0.8=h7f98852_4
   - c-ares=1.19.1=hd590300_0
-  - ca-certificates=2023.7.22=hbcca054_0
+  - ca-certificates=2023.11.17=hbcca054_0
   - cairo=1.16.0=hbbf8b49_1016
   - cfitsio=4.2.0=hd9d235c_0
   - curl=8.1.2=h409715c_0
@@ -71,6 +71,7 @@ dependencies:
   - libgdal=3.7.0=h5a391c5_4
   - libgfortran-ng=13.1.0=h69a702a_0
   - libgfortran5=13.1.0=h15d22d2_0
+  - libgit2=1.7.1=hca3a8ce_0
   - libglib=2.76.3=hebfc3b9_0
   - libgomp=13.1.0=he5830b7_0
   - libiconv=1.17=h166bdaf_0
@@ -108,7 +109,7 @@ dependencies:
   - numpy=1.25.0=py311h64a7726_0
   - openjdk=20.0.0=h8e330f5_0
   - openjpeg=2.5.0=hfec8fc6_2
-  - openssl=3.1.3=hd590300_0
+  - openssl=3.2.0=hd590300_0
   - pandoc=2.19.2=h32600fe_2
   - pango=1.50.14=heaa33ce_1
   - pcre2=10.40=hc3806b6_0
@@ -141,9 +142,11 @@ dependencies:
   - r-bitops=1.0_7=r43h57805ef_2
   - r-boot=1.3_28.1=r43hc72bb7e_1
   - r-brew=1.0_8=r43hc72bb7e_2
+  - r-brio=1.1.3=r43h57805ef_2
   - r-broom=1.0.5=r43hc72bb7e_1
   - r-bslib=0.5.0=r43hc72bb7e_1
   - r-cachem=1.0.8=r43h57805ef_1
+  - r-callr=3.7.3=r43hc72bb7e_1
   - r-car=3.1_2=r43hc72bb7e_1
   - r-cardata=3.0_5=r43hc72bb7e_2
   - r-caret=6.0_94=r43h57805ef_1
@@ -173,6 +176,7 @@ dependencies:
   - r-corrplot=0.92=r43hc72bb7e_2
   - r-cpp11=0.4.4=r43hc72bb7e_0
   - r-crayon=1.5.2=r43hc72bb7e_2
+  - r-credentials=2.0.1=r43hc72bb7e_0
   - r-crosstalk=1.2.0=r43hc72bb7e_2
   - r-curl=5.0.1=r43hf9611b0_0
   - r-data.table=1.14.8=r43h029312a_2
@@ -180,11 +184,14 @@ dependencies:
   - r-dbi=1.1.3=r43hc72bb7e_2
   - r-deldir=1.0_9=r43h61816a4_1
   - r-desc=1.4.2=r43hc72bb7e_2
+  - r-devtools=2.4.5=r43hc72bb7e_2
   - r-diagram=1.6.5=r43ha770c72_2
+  - r-diffobj=0.3.5=r43h57805ef_2
   - r-digest=0.6.31=r43ha503ecb_1
   - r-distillery=1.2_1=r43h785f33e_2
   - r-doparallel=1.0.17=r43hc72bb7e_2
   - r-dotcall64=1.0_2=r43h61816a4_2
+  - r-downlit=0.4.3=r43hc72bb7e_0
   - r-dplyr=1.1.2=r43ha503ecb_1
   - r-dt=0.28=r43hc72bb7e_1
   - r-dtw=1.23_1=r43hd590300_2
@@ -213,7 +220,10 @@ dependencies:
   - r-future=1.33.0=r43hc72bb7e_0
   - r-future.apply=1.11.0=r43hc72bb7e_1
   - r-generics=0.1.3=r43hc72bb7e_2
+  - r-gert=2.0.0=r43hc25a090_0
   - r-ggplot2=3.4.2=r43hc72bb7e_1
+  - r-gh=1.4.0=r43hc72bb7e_1
+  - r-gitcreds=0.1.2=r43hc72bb7e_2
   - r-glasso=1.11=r43h61816a4_4
   - r-globals=0.16.2=r43hc72bb7e_1
   - r-glue=1.6.2=r43h57805ef_2
@@ -231,10 +241,13 @@ dependencies:
   - r-htmltable=2.4.1=r43hc72bb7e_2
   - r-htmltools=0.5.5=r43ha503ecb_1
   - r-htmlwidgets=1.6.2=r43hc72bb7e_1
+  - r-httpuv=1.6.12=r43ha503ecb_0
   - r-httr=1.4.7=r43hc72bb7e_0
+  - r-httr2=0.2.3=r43hc72bb7e_1
   - r-hydrogof=0.4_0=r43hc72bb7e_2
   - r-hydrotsm=0.6_0=r43hc72bb7e_2
   - r-igraph=1.4.3=r43h9254619_1
+  - r-ini=0.3.1=r43hc72bb7e_1005
   - r-interp=1.1_4=r43ha503ecb_1
   - r-intervals=0.15.4=r43ha503ecb_0
   - r-ipred=0.9_14=r43h57805ef_1
@@ -275,6 +288,7 @@ dependencies:
   - r-memoise=2.0.1=r43hc72bb7e_2
   - r-mgcv=1.8_42=r43h316c678_2
   - r-mime=0.12=r43h57805ef_2
+  - r-miniui=0.1.1.1=r43hc72bb7e_1004
   - r-minqa=1.2.5=r43hcf54a89_1
   - r-mnormt=2.1.1=r43h61816a4_1
   - r-modelmetrics=1.2.2.2=r43ha503ecb_3
@@ -297,19 +311,25 @@ dependencies:
   - r-pbkrtest=0.5.2=r43hc72bb7e_1
   - r-pcict=0.5_4.4=r43h57805ef_1
   - r-pillar=1.9.0=r43hc72bb7e_1
+  - r-pkgbuild=1.4.2=r43hc72bb7e_0
   - r-pkgconfig=2.0.3=r43hc72bb7e_3
+  - r-pkgdown=2.0.7=r43hc72bb7e_1
   - r-pkgload=1.3.2=r43hc72bb7e_1
   - r-plyr=1.8.8=r43ha503ecb_1
   - r-png=0.1_8=r43h81d01c5_1
+  - r-praise=1.0.0=r43hc72bb7e_1007
   - r-prettyunits=1.1.1=r43hc72bb7e_3
   - r-proc=1.18.2=r43ha503ecb_2
+  - r-processx=3.8.2=r43h57805ef_0
   - r-prodlim=2023.03.31=r43ha503ecb_1
+  - r-profvis=0.3.8=r43h57805ef_3
   - r-progress=1.2.2=r43hc72bb7e_4
   - r-progressr=0.13.0=r43hc72bb7e_1
   - r-proj=0.4.0=r43h57805ef_2
   - r-promises=1.2.0.1=r43ha503ecb_2
   - r-proxy=0.4_27=r43h57805ef_2
   - r-prroc=1.3.1=r43hc72bb7e_1005
+  - r-ps=1.7.5=r43h57805ef_1
   - r-pscl=1.5.5.1=r43hd590300_1
   - r-psych=2.3.6=r43hc72bb7e_0
   - r-purrr=1.0.1=r43h57805ef_1
@@ -317,8 +337,10 @@ dependencies:
   - r-quadprog=1.5_8=r43h13b3f57_5
   - r-quantreg=5.95=r43hd9ac46e_1
   - r-r6=2.5.1=r43hc72bb7e_2
+  - r-ragg=1.2.5=r43h85cdef0_2
   - r-randomforest=4.7_1.1=r43h61816a4_2
   - r-rappdirs=0.3.3=r43h57805ef_2
+  - r-rcmdcheck=1.4.0=r43h785f33e_2
   - r-rcolorbrewer=1.1_3=r43h785f33e_2
   - r-rcpp=1.0.10=r43ha503ecb_1
   - r-rcpparmadillo=0.12.4.1.0=r43h08d816e_0
@@ -329,6 +351,8 @@ dependencies:
   - r-recipes=1.0.6=r43hc72bb7e_1
   - r-recommended=4.3=r43hd8ed1ab_1006
   - r-rematch=1.0.1=r43hc72bb7e_1006
+  - r-rematch2=2.1.2=r43hc72bb7e_3
+  - r-remotes=2.4.2.1=r43hc72bb7e_0
   - r-repr=1.1.6=r43h785f33e_1
   - r-reshape=0.8.9=r43hc72bb7e_2
   - r-reshape2=1.4.4=r43ha503ecb_3
@@ -343,14 +367,18 @@ dependencies:
   - r-rpart=4.1.19=r43h57805ef_1
   - r-rprojroot=2.0.3=r43hc72bb7e_0
   - r-rstudioapi=0.14=r43hc72bb7e_2
+  - r-rversions=2.1.2=r43hc72bb7e_2
   - r-s2=1.1.4=r43h5eac2b3_1
   - r-s2dv=1.4.1=r43hc72bb7e_1
   - r-sass=0.4.6=r43ha503ecb_1
   - r-scales=1.2.1=r43hc72bb7e_2
+  - r-sessioninfo=1.2.2=r43hc72bb7e_2
   - r-sf=1.0_14=r43ha912c30_0
   - r-sftime=0.2_0=r43hc72bb7e_1
   - r-shape=1.4.6=r43ha770c72_2
+  - r-shiny=1.8.0=r43h785f33e_0
   - r-signal=0.7_7=r43h61816a4_3
+  - r-sourcetools=0.1.7_1=r43ha503ecb_1
   - r-sp=1.6_1=r43h57805ef_1
   - r-spacetime=1.3_0=r43hc72bb7e_1
   - r-spam=2.9_1=r43hd9ac46e_2
@@ -364,7 +392,10 @@ dependencies:
   - r-stringr=1.5.0=r43h785f33e_1
   - r-survival=3.5_5=r43h57805ef_1
   - r-sys=3.4.2=r43h57805ef_1
+  - r-systemfonts=1.0.5=r43haf97adc_0
   - r-terra=1.7_39=r43hace868e_1
+  - r-testthat=3.2.0=r43ha503ecb_0
+  - r-textshaping=0.3.6=r43h24cd192_6
   - r-tibble=3.2.1=r43h57805ef_2
   - r-tidyr=1.3.0=r43ha503ecb_1
   - r-tidyselect=1.2.0=r43hc72bb7e_1
@@ -376,6 +407,8 @@ dependencies:
   - r-tzdb=0.4.0=r43ha503ecb_1
   - r-udunits2=0.13.2.1=r43h57805ef_2
   - r-units=0.8_4=r43ha503ecb_0
+  - r-urlchecker=1.0.1=r43hc72bb7e_2
+  - r-usethis=2.2.2=r43hc72bb7e_0
   - r-utf8=1.2.3=r43h57805ef_1
   - r-uuid=1.1_0=r43h57805ef_2
   - r-value=2.2.4=r43ha770c72_0
@@ -384,10 +417,14 @@ dependencies:
   - r-viridis=0.6.3=r43hc72bb7e_1
   - r-viridislite=0.4.2=r43hc72bb7e_1
   - r-vroom=1.6.3=r43ha503ecb_1
+  - r-waldo=0.5.2=r43hc72bb7e_0
+  - r-whisker=0.4.1=r43hc72bb7e_1
   - r-withr=2.5.0=r43hc72bb7e_2
   - r-wk=0.8.0=r43ha503ecb_0
   - r-xfun=0.39=r43ha503ecb_1
   - r-xml2=1.3.4=r43h1ad5fc0_2
+  - r-xopen=1.0.0=r43hc72bb7e_1005
+  - r-xtable=1.8_4=r43hc72bb7e_5
   - r-xts=0.13.1=r43h57805ef_1
   - r-yaml=2.3.7=r43h57805ef_1
   - r-zip=2.3.0=r43h57805ef_1

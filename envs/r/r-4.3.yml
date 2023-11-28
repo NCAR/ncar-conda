@@ -51,4 +51,5 @@ dependencies:
   - jupyter_client
   - r-dataretrieval
   - r-hydrogof
+  - r-devtools
 prefix: /glade/u/apps/opt/conda/envs/r-4.3
