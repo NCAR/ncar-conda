@@ -15,8 +15,24 @@ if [[ -z $matlab_version ]]; then
     exit 1
 fi
 
-if [[ $CONDA_PREFIX != *jhk-* ]] && [[ $CONDA_PREFIX != *jhub-* ]]; then
-    >&2 echo "Error: Please load a JupyterHub Kernel conda environment first!"
+if [[ " $@ " != *" --user "* ]]; then
+    export kernel_prefix="ktest-"
+
+    if [[ $CONDA_PREFIX != *jhk-* ]] && [[ $CONDA_PREFIX != *jhub-* ]]; then
+        >&2 echo "Error: Please load a JupyterHub Kernel conda environment first!"
+        exit 1
+    fi
+elif [[ -z $CONDA_PREFIX ]] || ! which jupyter-lab >& /dev/null; then
+    >&2 echo "Error: Please load a Conda environment with JupyterLab first!"
+    exit 1
+else
+    export kernel_prefix="user-"
+fi
+
+if ! conda list | grep -e ^matlab_kernel; then
+    >&2 echo "Error: conda environment must provide matlab_kernel package. Try:"
+    >&2 echo -e "\n       conda install numpy ipython wurlitzer metakernel"
+    >&2 echo -e "       pip install --no-cache-dir matlab_kernel\n"
     exit 1
 fi
 
@@ -25,7 +41,6 @@ if [[ $(whoami) == csgteam ]]; then
     export hub_kernels_public=/ncar/usr/jupyterhub.hpc.ucar.edu/share/kernels
 else
     export hub_kernels_private=$HOME/.local/share/jupyter/kernels
-    export kernel_prefix="ktest-"
 fi
 
 kernel_name=${kernel_prefix}matlab-${matlab_version,,}
@@ -36,16 +51,39 @@ module -q load ncarenv/$ncarenv_version matlab/$matlab_version
 
 # Install the system- and version-specific engine
 # See https://pypi.org/project/matlabengine/#history for version mapping
-declare -A me_map
+declare -A me_map pv_map
+me_map[R2023b]=23.2.*
 me_map[R2023a]=9.14.*
+me_map[R2022b]=9.13.*
+me_map[R2022a]=9.12.*
+me_map[R2021b]=9.11.*
+me_map[R2021a]=9.10.*
+me_map[R2020b]=9.9.*
+
+pv_map[R2023b]="3.9 3.10 3.11"
+pv_map[R2023a]="3.8 3.9 3.10"
+pv_map[R2022b]="3.8 3.9 3.10"
+pv_map[R2022a]="3.8 3.9"
+pv_map[R2021b]="3.7 3.8 3.9"
+pv_map[R2021a]="3.7 3.8"
+pv_map[R2020b]="3.6 3.7 3.8"
 
 function install_engine {
-    py_vers=$(python -V | sed 's/.* \(.*\)\..*/\1/')
-    export PYTHONPATH=$engine_prefix/lib/python${py_vers}/site-packages:$PYTHONPATH
+    export PYTHONPATH=$engine_prefix/lib/python${python_version}/site-packages:$PYTHONPATH
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$NCAR_ROOT_MATLAB/bin/glnxa64
 
     pip install --no-cache-dir --prefix=$engine_prefix matlabengine==${me_map[$matlab_version]}
 }
+
+# Check Python-Matlab compatibility
+python_version=$(python -c "import sys; print('{}.{}'.format(*sys.version_info[:2]))")
+
+if [[ " ${pv_map[$matlab_version]} " != *" $python_version "* ]]; then
+    >&2 echo "Error: This Matlab version ($matlab_version) cannot be used in an environment"
+    >&2 echo "       with Python $python_version. Allowed Python versions include:"
+    >&2 echo -e "\n       ${pv_map[$matlab_version]}\n"
+    exit 1
+fi
 
 engine_prefix=$CONDA_PREFIX/kernel-packages/$NCAR_HOST/matlab/$matlab_version
 
@@ -105,7 +143,14 @@ EOF
 
 if [[ ! -f $kernel_file ]]; then
     echo "*** Creating kernel file for $matlab_version ***"
-    cp -r $my_dir/templates/matlab $hub_kernels_private/$kernel_name
+    asset_dir=/glade/u/apps/etc/logos/matlab
+
+    if [[ -d $asset_dir ]]; then
+        cp -r $asset_dir $hub_kernels_private/$kernel_name
+    else
+        mkdir -p $hub_kernels_private/$kernel_name
+    fi
+
     create_kernel $kernel_file
 else
     echo "Kernel exists; skipping step ..."

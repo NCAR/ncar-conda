@@ -15,9 +15,18 @@ if [[ -z $julia_version ]]; then
     exit 1
 fi
 
-if [[ $CONDA_PREFIX != *jhk-* ]] && [[ $CONDA_PREFIX != *jhub-* ]]; then
-    >&2 echo "Error: Please load a JupyterHub Kernel conda environment first!"
+if [[ " $@ " != *" --user "* ]]; then
+    export kernel_prefix="ktest-"
+
+    if [[ $CONDA_PREFIX != *jhk-* ]] && [[ $CONDA_PREFIX != *jhub-* ]]; then
+        >&2 echo "Error: Please load a JupyterHub Kernel conda environment first!"
+        exit 1
+    fi
+elif [[ -z $CONDA_PREFIX ]] || ! which jupyter-lab >& /dev/null; then
+    >&2 echo "Error: Please load a Conda environment with JupyterLab first!"
     exit 1
+else
+    export kernel_prefix="user-"
 fi
 
 if [[ $(whoami) == csgteam ]]; then
@@ -25,7 +34,6 @@ if [[ $(whoami) == csgteam ]]; then
     export hub_kernels_public=/ncar/usr/jupyterhub.hpc.ucar.edu/share/kernels
 else
     export hub_kernels_private=$HOME/.local/share/jupyter/kernels
-    export kernel_prefix="ktest-"
 fi
 
 kernel_name=${kernel_prefix}julia-${julia_version,,}
@@ -96,7 +104,14 @@ EOF
 
 if [[ ! -f $kernel_file ]]; then
     echo "*** Creating kernel file for $julia_version ***"
-    cp -r $my_dir/templates/julia $hub_kernels_private/$kernel_name
+    asset_dir=/glade/u/apps/etc/logos/julia
+
+    if [[ -d $asset_dir ]]; then
+        cp -r $asset_dir $hub_kernels_private/$kernel_name
+    else
+        mkdir -p $hub_kernels_private/$kernel_name
+    fi
+
     create_kernel $kernel_file
 else
     echo "Kernel exists; skipping step ..."
