@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 #   Author:         Brian Vanderwende
-#   Last Revised:   18:08, 27 Nov 2023
+#   Last Revised:   15:22, 01 Dec 2023
 #
 
 cat << EOF
@@ -101,7 +101,7 @@ while ! $(grep -Fq -e "ERROR" -e "is running at" $log_file >& /dev/null); do
     sleep 1
     ELAPSED=$(($ELAPSED+1))
 
-    if [[ $ELAPSED -gt 30 ]]; then
+    if [[ $ELAPSED -gt ${JUPYTER_START_TIMEOUT:-60} ]]; then
         error_message "Could not create server (TIMEOUT)"
     fi
 done
