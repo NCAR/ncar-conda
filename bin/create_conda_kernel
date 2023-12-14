@@ -6,7 +6,7 @@
 #   nor does it leave out the sourced environment files.
 #
 #   Author:         Brian Vanderwende
-#   Last Revised:   13:49, 04 Jul 2023
+#   Last Revised:   15:29, 14 Dec 2023
 #
 
 function usage {
@@ -28,7 +28,7 @@ EOF
 
 # Path for NCAR system envs
 sys_env_root=/glade/u/apps/opt/conda/envs
-repo_root="$( cd "$(dirname "$0")"/.. ; pwd )"
+repo_root="$( cd "$(dirname "$(readlink -f "$0")")"/.. ; pwd )"
 
 # Kernel types supported
 declare -A kbins

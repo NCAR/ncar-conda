@@ -6,7 +6,7 @@
 set -e
 
 # Settings
-my_dir="$( cd "$(dirname "$0")" ; pwd )"
+my_dir="$( cd "$(dirname "$(readlink -f "$0")")" ; pwd )"
 ncarenv_version=$(module -t list |& grep ncarenv | cut -d/ -f2)
 matlab_version=$(module -t list |& grep matlab | cut -d/ -f2)
 

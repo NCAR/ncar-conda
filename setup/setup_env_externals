@@ -9,7 +9,7 @@ umask 022
 
 # Settings
 env_vers=$(date +%y%m%d)
-my_dir="$( cd "$(dirname "$0")" ; pwd )"
+my_dir="$( cd "$(dirname "$(readlink -f "$0")")" ; pwd )"
 local_kernels=$HOME/.local/share/jupyter/kernels
 
 if [[ $(whoami) == csgteam ]]; then

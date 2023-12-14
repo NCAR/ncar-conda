@@ -3,13 +3,13 @@
 #   This script checks whether the repo is up to date, and optionally
 #   whether any uncommitted changes exist.
 #
-#   Last Revised:   15:31, 24 Feb 2023
+#   Last Revised:   15:29, 14 Dec 2023
 #
 
 set -e
 
 # Prep work
-repo_root="$( cd "$(dirname "$0")"/.. ; pwd )"
+repo_root="$( cd "$(dirname "$(readlink -f "$0")")"/.. ; pwd )"
 cd $repo_root
 
 echo "Checking whether local and remote Git repos match ..."

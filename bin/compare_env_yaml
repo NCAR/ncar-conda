@@ -3,7 +3,7 @@
 #   This utility script can be used to update a particular deployed
 #   environment, specified by name as the argument
 #
-#   Last Revised:   20:07, 03 Jul 2023
+#   Last Revised:   15:28, 14 Dec 2023
 #
 
 function usage {
@@ -92,7 +92,7 @@ else
 fi
 
 env_name=${CONDA_PREFIX##*/}
-repo_root="$( cd "$(dirname "$0")"/.. ; pwd )"
+repo_root="$( cd "$(dirname "$(readlink -f "$0")")"/.. ; pwd )"
 cd $repo_root/envs
 
 if [[ -z $yaml_file ]]; then

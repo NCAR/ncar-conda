@@ -5,7 +5,7 @@
 set -e
 
 # Prep work
-repo_root="$( cd "$(dirname "$0")"/.. ; pwd )"
+repo_root="$( cd "$(dirname "$(readlink -f "$0")")"/.. ; pwd )"
 $repo_root/util/check_repo || exit 1
 cd $repo_root/envs
 
