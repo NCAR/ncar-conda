@@ -6,7 +6,7 @@
 #   nor does it leave out the sourced environment files.
 #
 #   Author:         Brian Vanderwende
-#   Last Revised:   15:29, 14 Dec 2023
+#   Last Revised:   11:15, 13 Jan 2024
 #
 
 function usage {
@@ -34,6 +34,9 @@ repo_root="$( cd "$(dirname "$(readlink -f "$0")")"/.. ; pwd )"
 declare -A kbins
 kbins[python]=bin/python
 kbins[r]=lib/R/bin/R
+
+# Disable Python debugger log spam
+export PYDEVD_DISABLE_FILE_VALIDATION=1
 
 # Make sure we can access conda
 current_prefix=$CONDA_PREFIX
@@ -193,6 +196,9 @@ cat > $kernel_path/launcher << EOF
 # Load only the conda module
 module -q purge
 module -q load ncarenv conda
+
+# Disable Python debugger log spam
+export PYDEVD_DISABLE_FILE_VALIDATION=1
 
 # Resolve any symbolic links
 stable_path=\$(readlink -f $CONDA_PREFIX)

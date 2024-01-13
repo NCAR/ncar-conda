@@ -3,7 +3,7 @@
 #   This utility script can be used to update a particular deployed
 #   environment, specified by name as the argument
 #
-#   Last Revised:   15:28, 14 Dec 2023
+#   Last Revised:   09:14, 13 Jan 2024
 #
 
 function usage {
@@ -63,6 +63,9 @@ while [[ $# -gt 0 ]]; do
 
     shift
 done
+
+# Disable Python debugger log spam
+export PYDEVD_DISABLE_FILE_VALIDATION=1
 
 # Make sure we can access conda
 current_prefix=$CONDA_PREFIX

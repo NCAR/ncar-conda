@@ -7,6 +7,7 @@ set -e
 
 # Settings
 my_dir="$( cd "$(dirname "$(readlink -f "$0")")" ; pwd )"
+my_user=$(whoami)
 ncarenv_version=$(module -t list |& grep ncarenv | cut -d/ -f2)
 matlab_version=$(module -t list |& grep matlab | cut -d/ -f2)
 
@@ -16,7 +17,9 @@ if [[ -z $matlab_version ]]; then
 fi
 
 if [[ " $@ " != *" --user "* ]]; then
-    export kernel_prefix="ktest-"
+    if [[ $my_user != csgteam ]]; then
+        export kernel_prefix="ktest-"
+    fi
 
     if [[ $CONDA_PREFIX != *jhk-* ]] && [[ $CONDA_PREFIX != *jhub-* ]]; then
         >&2 echo "Error: Please load a JupyterHub Kernel conda environment first!"
@@ -36,7 +39,7 @@ if ! pip list | grep -q -e ^matlab-kernel; then
     exit 1
 fi
 
-if [[ $(whoami) == csgteam ]]; then
+if [[ $my_user == csgteam ]]; then
     export hub_kernels_private=/ncar/usr/jupyterhub/kernels
     export hub_kernels_public=/ncar/usr/jupyterhub.hpc.ucar.edu/share/kernels
 else
