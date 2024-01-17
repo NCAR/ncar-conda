@@ -6,7 +6,7 @@ dependencies:
   - python=3.10
   - numpy
   - scipy
-  - matplotlib
+  - matplotlib=3.7.3
   - seaborn
   - cartopy
   - shapely
