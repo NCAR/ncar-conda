@@ -91,4 +91,5 @@ dependencies:
   - folium
   - gsw
   - eccodes
+  - contextily
 prefix: /glade/u/apps/opt/conda/envs/npl-2024a
