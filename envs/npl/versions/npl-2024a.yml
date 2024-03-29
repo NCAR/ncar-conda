@@ -60,14 +60,14 @@ dependencies:
   - bzip2=1.0.8=hd590300_5
   - c-ares=1.25.0=hd590300_0
   - c-blosc2=2.12.0=hb4ffafa_0
-  - ca-certificates=2023.11.17=hbcca054_0
+  - ca-certificates=2024.2.2=hbcca054_0
   - cached-property=1.5.2=hd8ed1ab_1
   - cached_property=1.5.2=pyha770c72_1
   - cairo=1.18.0=h3faef2a_0
   - cartopy=0.22.0=py311h320fe9a_1
   - cdsapi=0.6.1=pyhd8ed1ab_0
   - celluloid=0.2.0=pyhd8ed1ab_0
-  - certifi=2023.11.17=pyhd8ed1ab_0
+  - certifi=2024.2.2=pyhd8ed1ab_0
   - cf-units=3.2.0=py311h1f0f07a_4
   - cf_xarray=0.8.7=pyhd8ed1ab_0
   - cffi=1.16.0=py311hb3a22ac_0
@@ -81,6 +81,7 @@ dependencies:
   - cligj=0.7.2=pyhd8ed1ab_1
   - cloudpickle=3.0.0=pyhd8ed1ab_0
   - cmaps=2.0.1=pyhd8ed1ab_0
+  - cmcrameri=1.8=pyhd8ed1ab_0
   - cmocean=3.0.3=pyhd8ed1ab_0
   - cmweather=0.3.2=pyhd8ed1ab_0
   - colorama=0.4.6=pyhd8ed1ab_0
@@ -403,7 +404,7 @@ dependencies:
   - opencv=4.8.1=py311h38be061_1
   - openh264=2.4.0=h59595ed_0
   - openjpeg=2.5.0=h488ebb8_3
-  - openssl=3.2.0=hd590300_1
+  - openssl=3.2.1=hd590300_1
   - orc=1.9.0=h208142c_3
   - overrides=7.4.0=pyhd8ed1ab_0
   - p11-kit=0.24.1=hc5aa10d_0

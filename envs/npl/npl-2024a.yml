@@ -92,4 +92,5 @@ dependencies:
   - gsw
   - eccodes
   - contextily
+  - cmcrameri
 prefix: /glade/u/apps/opt/conda/envs/npl-2024a
