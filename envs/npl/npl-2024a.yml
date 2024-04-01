@@ -93,4 +93,5 @@ dependencies:
   - eccodes
   - contextily
   - cmcrameri
+  - xinvert
 prefix: /glade/u/apps/opt/conda/envs/npl-2024a

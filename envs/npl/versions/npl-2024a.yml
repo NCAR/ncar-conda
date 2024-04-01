@@ -601,6 +601,7 @@ dependencies:
   - xesmf=0.8.2=pyhd8ed1ab_0
   - xgcm=0.8.1=pyhd8ed1ab_0
   - xhistogram=0.3.2=pyhd8ed1ab_0
+  - xinvert=0.1.3=pyhd8ed1ab_0
   - xkeyboard-config=2.40=hd590300_0
   - xmltodict=0.13.0=pyhd8ed1ab_0
   - xorg-fixesproto=5.0=h7f98852_1002
