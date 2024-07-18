@@ -54,10 +54,10 @@ cat > $1 << EOF
 module --force purge
 module load ncarenv
 
-if [[ \$NCAR_HOST == cheyenne ]]; then
-    module load conda idl/\$2
+if [[ \$NCAR_HOST == casper ]]; then
+    module load ncarenv/23.10 conda idl/\$1
 else
-    module load ncarenv/\$1 conda idl/\$2
+    module load ncarenv/23.09 conda idl/\$1
 fi
 
 shift; shift
@@ -85,7 +85,6 @@ function create_kernel {
 cat > $1 << EOF
 {
     "argv": ["$CONDA_PREFIX/kernel-launchers/idl",
-        "$LMOD_FAMILY_ENV_VERSION",
         "$idl_version",
         "{connection_file}"],
     "display_name": "IDL $idl_version${kernel_prefix:+ (${kernel_prefix/-})}",

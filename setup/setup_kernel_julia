@@ -50,7 +50,7 @@ function install_jpkg {
     julia -e 'using Pkg; Pkg.add("IJulia")'
 }
 
-export JULIA_DEPOT_PATH=$CONDA_PREFIX/julia/$NCAR_HOST
+export JULIA_DEPOT_PATH=$CONDA_PREFIX/julia/$NCAR_HOST/$julia_version
 
 if [[ ! -d $JULIA_DEPOT_PATH ]]; then
     echo "*** Installing IJulia package for $NCAR_HOST ***"
@@ -66,11 +66,16 @@ cat > $1 << EOF
 #!/bin/bash
 
 module --force purge
-module load ncarenv/\$1 conda julia/\$2
+
+if [[ \$NCAR_HOST == casper ]]; then
+    module load ncarenv/23.10 conda julia/\$1
+else
+    module load ncarenv/23.09 conda julia/\$1
+fi
 
 conda activate $CONDA_PREFIX
 
-export JULIA_DEPOT_PATH=\$CONDA_PREFIX/julia/\$NCAR_HOST
+export JULIA_DEPOT_PATH=\$CONDA_PREFIX/julia/\$NCAR_HOST/\$1
 shift; shift
 
 exec julia -i --color=yes --project=@. \$JULIA_DEPOT_PATH/packages/IJulia/*/src/kernel.jl "\$@"
@@ -93,7 +98,6 @@ function create_kernel {
 cat > $1 << EOF
 {
     "argv": ["$CONDA_PREFIX/kernel-launchers/julia",
-        "$LMOD_FAMILY_ENV_VERSION",
         "$julia_version",
         "{connection_file}"],
     "display_name": "Julia $julia_version${kernel_prefix:+ (${kernel_prefix/-})}",
