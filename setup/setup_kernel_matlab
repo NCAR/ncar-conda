@@ -32,7 +32,7 @@ else
     export kernel_prefix="user-"
 fi
 
-if ! pip list | grep -q -e ^matlab-kernel; then
+if ! pip list |& grep -q -e ^matlab-kernel; then
     >&2 echo "Error: conda environment must provide matlab_kernel package. Try:"
     >&2 echo -e "\n       conda install numpy ipython wurlitzer metakernel"
     >&2 echo -e "       pip install --no-cache-dir matlab_kernel\n"
@@ -40,8 +40,8 @@ if ! pip list | grep -q -e ^matlab-kernel; then
 fi
 
 if [[ $my_user == csgteam ]]; then
-    export hub_kernels_private=/ncar/usr/jupyterhub/kernels
-    export hub_kernels_public=/ncar/usr/jupyterhub.hpc.ucar.edu/share/kernels
+    export hub_kernels_private=/glade/u/ssg/ch/usr/jupyterhub/kernels
+    export hub_kernels_public=/glade/u/apps/jupyterhub/csg-managed/prod/kernels
 else
     export hub_kernels_private=$HOME/.local/share/jupyter/kernels
 fi

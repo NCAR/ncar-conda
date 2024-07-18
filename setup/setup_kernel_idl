@@ -33,8 +33,8 @@ else
 fi
 
 if [[ $my_user == csgteam ]]; then
-    export hub_kernels_private=/ncar/usr/jupyterhub/kernels
-    export hub_kernels_public=/ncar/usr/jupyterhub.hpc.ucar.edu/share/kernels
+    export hub_kernels_private=/glade/u/ssg/ch/usr/jupyterhub/kernels
+    export hub_kernels_public=/glade/u/apps/jupyterhub/csg-managed/prod/kernels
 else
     export hub_kernels_private=$HOME/.local/share/jupyter/kernels
 fi
