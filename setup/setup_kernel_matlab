@@ -55,6 +55,7 @@ module -q load ncarenv/$ncarenv_version matlab/$matlab_version
 # Install the system- and version-specific engine
 # See https://pypi.org/project/matlabengine/#history for version mapping
 declare -A me_map pv_map
+me_map[R2024a]=24.1.*
 me_map[R2023b]=23.2.*
 me_map[R2023a]=9.14.*
 me_map[R2022b]=9.13.*
@@ -63,6 +64,7 @@ me_map[R2021b]=9.11.*
 me_map[R2021a]=9.10.*
 me_map[R2020b]=9.9.*
 
+pv_map[R2024a]="3.9 3.10 3.11"
 pv_map[R2023b]="3.9 3.10 3.11"
 pv_map[R2023a]="3.8 3.9 3.10"
 pv_map[R2022b]="3.8 3.9 3.10"
