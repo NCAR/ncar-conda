@@ -6,7 +6,7 @@
 #   nor does it leave out the sourced environment files.
 #
 #   Author:         Brian Vanderwende
-#   Last Revised:   11:15, 13 Jan 2024
+#   Last Revised:   13:37, 30 Jul 2024
 #
 
 function usage {
@@ -139,10 +139,11 @@ if [[ $base_prefix == $CONDA_PREFIX ]]; then
     fi
 fi
 
+# ipykernel will always use lowercase, so we must too
 if [[ $env_owner != $(whoami) ]] && [[ $CONDA_PREFIX != ${sys_env_root}* ]]; then
-    kernel_name=${env_owner}-$env_name
+    kernel_name=${env_owner}-${env_name,,}
 else
-    kernel_name=$env_name
+    kernel_name=${env_name,,}
 fi
 
 # Create basic kernel using ipykernel package
