@@ -95,4 +95,5 @@ dependencies:
   - cmcrameri
   - xinvert
   - uxarray
+  - xwrf
 prefix: /glade/u/apps/opt/conda/envs/npl-2024b

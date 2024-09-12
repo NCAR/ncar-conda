@@ -66,7 +66,7 @@ dependencies:
   - bzip2=1.0.8=h4bc722e_7
   - c-ares=1.32.2=h4bc722e_0
   - c-blosc2=2.15.0=h6d6b9e4_1
-  - ca-certificates=2024.7.4=hbcca054_0
+  - ca-certificates=2024.8.30=hbcca054_0
   - cached-property=1.5.2=hd8ed1ab_1
   - cached_property=1.5.2=pyha770c72_1
   - cads-api-client=1.1.0=pyhd8ed1ab_0
@@ -74,7 +74,7 @@ dependencies:
   - cartopy=0.23.0=py311h14de704_1
   - cdsapi=0.7.0=pyhd8ed1ab_0
   - celluloid=0.2.0=pyhd8ed1ab_0
-  - certifi=2024.7.4=pyhd8ed1ab_0
+  - certifi=2024.8.30=pyhd8ed1ab_0
   - cf-units=3.2.0=py311h18e1886_5
   - cf_xarray=0.9.4=pyhd8ed1ab_0
   - cffi=1.16.0=py311hb3a22ac_0
@@ -121,6 +121,7 @@ dependencies:
   - docopt=0.6.2=py_1
   - docrep=0.3.2=pyh44b312d_0
   - docutils=0.20.1=py311h38be061_3
+  - donfig=0.8.1.post1=pyhd8ed1ab_0
   - eccodes=2.36.0=h762793a_0
   - entrypoints=0.4=pyhd8ed1ab_0
   - eofs=1.4.1=pyhd8ed1ab_1
@@ -289,7 +290,8 @@ dependencies:
   - libexpat=2.6.2=h59595ed_0
   - libffi=3.4.2=h7f98852_5
   - libflac=1.4.3=h59595ed_0
-  - libgcc-ng=14.1.0=h77fa898_0
+  - libgcc=14.1.0=h77fa898_1
+  - libgcc-ng=14.1.0=h69a702a_1
   - libgcrypt=1.11.0=h4ab18f5_0
   - libgd=2.3.3=h119a65a_9
   - libgdal=3.9.1=ha770c72_7
@@ -312,7 +314,7 @@ dependencies:
   - libgfortran5=14.1.0=hc5f4f2c_0
   - libglib=2.80.3=h8a4344b_1
   - libglu=9.0.0=ha6d2627_1004
-  - libgomp=14.1.0=h77fa898_0
+  - libgomp=14.1.0=h77fa898_1
   - libgoogle-cloud=2.26.0=h26d7fe4_0
   - libgoogle-cloud-storage=2.26.0=ha262f82_0
   - libgpg-error=1.50=h4f305b6_0
@@ -363,7 +365,8 @@ dependencies:
   - libspatialite=5.1.0=h15fa968_8
   - libsqlite=3.46.0=hde9e2c9_0
   - libssh2=1.11.0=h0841786_0
-  - libstdcxx-ng=14.1.0=hc0a3c3a_0
+  - libstdcxx=14.1.0=hc0a3c3a_1
+  - libstdcxx-ng=14.1.0=h4852527_1
   - libsystemd0=255=h3516f8a_1
   - libtasn1=4.19.0=h166bdaf_0
   - libthrift=0.19.0=hb90f79a_1
@@ -447,7 +450,7 @@ dependencies:
   - openexr=3.2.2=haf962dd_1
   - openh264=2.4.1=h59595ed_0
   - openjpeg=2.5.2=h488ebb8_0
-  - openssl=3.3.1=h4bc722e_2
+  - openssl=3.3.2=hb9d3cd8_0
   - orc=2.0.1=h17fec99_1
   - overrides=7.7.0=pyhd8ed1ab_0
   - p11-kit=0.24.1=hc5aa10d_0
@@ -677,6 +680,7 @@ dependencies:
   - xradar=0.5.1=pyhd8ed1ab_0
   - xrft=1.0.1=pyhd8ed1ab_0
   - xskillscore=0.0.26=pyhd8ed1ab_0
+  - xwrf=0.0.4=pyhd8ed1ab_0
   - xxhash=0.8.2=hd590300_0
   - xyzservices=2024.6.0=pyhd8ed1ab_0
   - xz=5.2.6=h166bdaf_0
