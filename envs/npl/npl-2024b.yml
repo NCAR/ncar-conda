@@ -96,4 +96,5 @@ dependencies:
   - xinvert
   - uxarray
   - xwrf
+  - s3fs
 prefix: /glade/u/apps/opt/conda/envs/npl-2024b
