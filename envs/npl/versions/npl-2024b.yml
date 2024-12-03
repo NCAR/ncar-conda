@@ -386,6 +386,7 @@ dependencies:
   - libxcrypt=4.4.36=hd590300_1
   - libxkbcommon=1.7.0=h2c5496b_1
   - libxml2=2.12.7=h4c95cb1_3
+  - libxslt=1.1.39=h76b75d6_0
   - libzip=1.10.1=h2629f0a_3
   - libzlib=1.3.1=h4ab18f5_1
   - libzopfli=1.0.3=h9c3ff4c_0
@@ -393,6 +394,7 @@ dependencies:
   - llvmlite=0.43.0=py311hbde99c3_0
   - locket=1.0.0=pyhd8ed1ab_0
   - looseversion=1.3.0=pyhd8ed1ab_0
+  - lxml=5.3.0=py311hcfaa980_2
   - lz4=4.3.3=py311h38e4bf4_0
   - lz4-c=1.9.4=hcb278e6_0
   - lzo=2.10=hd590300_1001
