@@ -22,7 +22,7 @@ dependencies:
   - dask-jobqueue
   - dask-labextension
   - dask-mpi
-  - datashader
+  - datashader=0.17.0
   - descartes
   - docopt
   - eccodes
@@ -95,4 +95,6 @@ dependencies:
   - xrft
   - xwrf
   - zarr
+  - f90nml
+  - openssl
 prefix: /glade/u/apps/opt/conda/envs/npl-2025a
