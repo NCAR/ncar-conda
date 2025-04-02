@@ -104,6 +104,7 @@ dependencies:
   - cytoolz=1.0.1=py312h66e93f0_0
   - dask=2025.1.0=pyhd8ed1ab_0
   - dask-core=2025.1.0=pyhd8ed1ab_0
+  - dask-geopandas=0.4.3=pyhd8ed1ab_0
   - dask-jobqueue=0.9.0=pyhd8ed1ab_0
   - dask-labextension=7.0.0=pyhd8ed1ab_1
   - dask-mpi=2022.4.0=pyh458ca06_3

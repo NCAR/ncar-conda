@@ -97,4 +97,5 @@ dependencies:
   - zarr
   - f90nml
   - openssl
+  - dask-geopandas
 prefix: /glade/u/apps/opt/conda/envs/npl-2025a
