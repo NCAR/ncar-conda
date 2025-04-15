@@ -161,6 +161,8 @@ dependencies:
   - gast=0.4.0=pyh9f0ad1d_0
   - gdal=3.10.1=py312hc55c449_2
   - gdk-pixbuf=2.42.12=hb9ae30d_0
+  - gempy=2024.2.0.2=pyhd8ed1ab_1
+  - gempy-engine=2024.2.0=pyhd8ed1ab_1
   - geocat-comp=2024.04.0=pyha770c72_1
   - geocat-viz=2024.03.0=pyhd8ed1ab_1
   - geographiclib=2.0=pyhd8ed1ab_1
@@ -455,7 +457,7 @@ dependencies:
   - openh264=2.5.0=hf92e6e3_0
   - openjpeg=2.5.3=h5fbd93e_0
   - openldap=2.6.9=he970967_0
-  - openssl=3.4.1=h7b32b05_0
+  - openssl=3.5.0=h7b32b05_0
   - orc=2.0.3=h12ee42a_2
   - overrides=7.7.0=pyhd8ed1ab_1
   - packaging=24.2=pyhd8ed1ab_2
@@ -524,6 +526,7 @@ dependencies:
   - pytables=3.10.2=py312hf8651a9_0
   - python=3.12.8=h9e4cc4f_1_cpython
   - python-dateutil=2.9.0.post0=pyhff2d567_1
+  - python-dotenv=1.0.1=pyhd8ed1ab_1
   - python-eccodes=2.37.0=py312hc0a28a1_0
   - python-fastjsonschema=2.21.1=pyhd8ed1ab_0
   - python-graphviz=0.20.3=pyh91182bf_2

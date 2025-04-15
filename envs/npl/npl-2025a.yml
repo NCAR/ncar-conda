@@ -98,4 +98,5 @@ dependencies:
   - f90nml
   - openssl
   - dask-geopandas
+  - gempy
 prefix: /glade/u/apps/opt/conda/envs/npl-2025a
