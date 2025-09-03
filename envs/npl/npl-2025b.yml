@@ -103,4 +103,6 @@ dependencies:
   - dask-labextension
   - openssl
   - django
+variables:
+  UCX_TLS: tcp
 prefix: /glade/u/apps/opt/conda/envs/npl-2025b

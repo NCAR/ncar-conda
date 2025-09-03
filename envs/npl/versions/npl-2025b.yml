@@ -700,4 +700,6 @@ dependencies:
   - zlib-ng=2.2.4=h7955e40_0
   - zstandard=0.23.0=py312h66e93f0_2
   - zstd=1.5.7=hb8e6e7a_2
+variables:
+  UCX_TLS: tcp
 prefix: /glade/u/apps/opt/conda/envs/npl-2025b

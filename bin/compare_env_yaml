@@ -3,7 +3,7 @@
 #   This utility script can be used to update a particular deployed
 #   environment, specified by name as the argument
 #
-#   Last Revised:   09:14, 13 Jan 2024
+#   Last Revised:   10:31, 03 Sep 2025
 #
 
 function usage {
@@ -173,6 +173,11 @@ yaml_sub="$(awk '/dependencies:/{ f = 1; next } /.*:/{ f = 0 } f' $yaml_file | s
 env_sub="$(awk '/dependencies:/{ f = 1; next } /.*:/{ f = 0 } f' <<< "$env_dump" | sort | sed 's/^[ ]*-//')"
 
 compare_states Packages
+
+yaml_sub="$(awk '/variables:/{ f = 1; next } /^[^ ]*:/{ f = 0 } f' $yaml_file | sort | sed 's/^[ ]*//')"
+env_sub="$(awk '/variables:/{ f = 1; next } /^[^ ]*:/{ f = 0 } f' <<< "$env_dump" | sort | sed 's/^[ ]*//')"
+
+compare_states Variables
 
 if [[ $quiet_mode != true ]]; then
     if [[ $found_something -ne 0 ]]; then
