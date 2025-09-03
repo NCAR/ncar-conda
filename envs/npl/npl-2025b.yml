@@ -102,4 +102,5 @@ dependencies:
   - python=3.12
   - dask-labextension
   - openssl
+  - django
 prefix: /glade/u/apps/opt/conda/envs/npl-2025b
