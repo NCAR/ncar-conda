@@ -7,7 +7,6 @@ dependencies:
   - pytables
   - cdsapi
   - numexpr
-  - regionmask
   - h5netcdf
   - arm_pyart
   - geocat-viz
