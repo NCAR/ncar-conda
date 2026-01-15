@@ -30,42 +30,42 @@ echo "Querying Conda environments on system ..."
 env_types=$(find . -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
 
 # Get listing of environments in system dir
-env_list=$(conda env list | grep $NCAR_ROOT_CONDA)
+env_list=$(conda env list | grep /glade/u/apps/opt/miniforge/envs)
 
 # Populate YAML files
 for env_type in $env_types; do
     echo "Looking for $env_type environments ..."
     sub_list=$(awk -v et=^${env_type}- '$1 ~ et {print $1}' <<< "$env_list")
-    mkdir -p $env_type/versions
 
     for env_name in $sub_list; do
+        mkdir -p $env_type/$env_name
         echo " - $env_name"
 
-        if [[ ! -f $env_type/versions/${env_name}.yml ]]; then
-            read -e -p "   Not current tracked! Add YAML file to roster (y/N)? " update_yaml
+        if [[ ! -f $env_type/$env_name/versions.yml ]]; then
+            read -e -p "   Not currently tracked! Add YAML file to roster (y/N)? " update_yaml
             update_yaml=${update_yaml,,}
 
             if [[ yes == ${update_yaml:-no}* ]]; then
                 echo "   Exporting environment versions ..."
-                conda env export -n $env_name > $env_type/versions/${env_name}.yml
+                conda env export -n $env_name > $env_type/$env_name/versions.yml
             fi
         else
             echo "   YAML file exists for $env_name. Checking for differences ..."
 
-            if ! $repo_root/bin/compare_env_yaml -q -f $env_name; then
+            if ! $repo_root/bin/compare_env_yaml -q $env_name; then
                 read -e -p "   Differences detected! Overwrite existing YAML file (y/N)? " update_yaml
                 update_yaml=${update_yaml,,}
 
                 if [[ yes == ${update_yaml:-no}* ]]; then
                     echo "   Exporting environment versions ..."
-                    conda env export -n $env_name > $env_type/versions/${env_name}.yml
+                    conda env export -n $env_name > $env_type/$env_name/versions.yml
                 fi
             fi
         fi
         
         if [[ yes == ${update_yaml:-no}* ]]; then
             echo "   Exporting environment history ..."
-            conda env export --from-history -n $env_name > $env_type/${env_name}.yml
+            conda env export --from-history -n $env_name > $env_type/$env_name/environment.yml
             unset update_yaml
         fi
     done

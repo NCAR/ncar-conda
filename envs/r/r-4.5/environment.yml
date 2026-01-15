@@ -1,0 +1,55 @@
+name: r-4.5
+channels:
+  - conda-forge
+dependencies:
+  - r-dt
+  - openssl
+  - r-sf
+  - r-lava
+  - r-climate4r.udg
+  - r-moments
+  - r-climate4r.value
+  - r-stars
+  - r-curl
+  - r-fitdistrplus
+  - r-proj4
+  - r-devtools
+  - r-clipr
+  - r-prroc
+  - r-randomforest
+  - r-s2dv
+  - r-distillery
+  - r-corrplot
+  - r-fields
+  - r-beanplot
+  - r-nloptr
+  - r-quantreg
+  - jupyter_client
+  - r-readr
+  - r-hydrogof
+  - r-pcict
+  - r-terra
+  - r-dataretrieval
+  - r-udunits2
+  - r-zip
+  - r-zoo
+  - r=4.5
+  - r-roxygen2
+  - r-cdft
+  - r-energy
+  - r-rgooglemaps
+  - r-climate4r.indices
+  - r-pscl
+  - r-ellipse
+  - r-qgraph
+  - r-lmoments
+  - r-extremes
+  - ca-certificates
+  - r-climate4r.climdex
+  - r-ggplot2
+  - r-statmod
+  - r-climate4r.datasets
+  - r-lubridate
+  - r-rnetcdf
+  - r-irkernel
+prefix: /glade/u/apps/opt/miniforge/envs/r-4.5

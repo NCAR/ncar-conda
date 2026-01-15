@@ -3,7 +3,7 @@
 #   This utility script can be used to update a particular deployed
 #   environment, specified by name as the argument
 #
-#   Last Revised:   10:31, 03 Sep 2025
+#   Last Revised:   09:27, 15 Jan 2026
 #
 
 function usage {
@@ -43,7 +43,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         -f|--from-history)
             conda_opts=--from-history
-            fdepth=2
+            yaml_type=environment
             ;;
         -q|--quiet)
             quiet_mode=true
@@ -100,7 +100,7 @@ cd $repo_root/envs
 
 if [[ -z $yaml_file ]]; then
     [[ $quiet_mode != true ]] && echo "Searching YAML catalog for $env_name ..."
-    yaml_file=$(find . -mindepth ${fdepth:-3} -maxdepth ${fdepth:-3} -type f -name ${env_name/.yml}.yml)
+    yaml_file=$(echo */$env_name/${yaml_type:-versions}.yml)
 
     if [[ -n $yaml_file ]]; then
         [[ $quiet_mode != true ]] && echo " - Using YAML file: $yaml_file"
