@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 #   Author:         Brian Vanderwende
-#   Last Revised:   14:43, 03 Apr 2025
+#   Last Revised:   13:21, 15 Jan 2026
 #
 
 cat << EOF
@@ -84,7 +84,7 @@ EOF
 }
 
 # Begin server creation
-log_dir=${SCRATCH:-/glade/scratch/${USER}}/.jupyter-lab
+log_dir=${SCRATCH:-/glade/derecho/scratch/${USER}}/.jupyter-lab
 log_file=${log_dir}/log.$(date +%Y%m%dT%H%M%S)
 mkdir -p $log_dir
 
