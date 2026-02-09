@@ -104,6 +104,7 @@ dependencies:
   - pyhdf
   - cf-units
   - zarr
+  - pywavelets
 variables:
   UCX_TLS: tcp
 prefix: /glade/u/apps/opt/miniforge/envs/npl-2026a

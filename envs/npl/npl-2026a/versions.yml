@@ -542,6 +542,7 @@ dependencies:
   - pytz=2025.2=pyhd8ed1ab_0
   - pyvista=0.46.4=pyhd8ed1ab_0
   - pyviz_comms=3.0.6=pyhd8ed1ab_0
+  - pywavelets=1.9.0=py313h29aa505_2
   - pyyaml=6.0.3=py313h3dea7bd_0
   - pyzmq=27.1.0=py312hfb55c3c_0
   - qhull=2020.2=h434a139_5
