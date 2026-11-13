@@ -1,0 +1,116 @@
+#!/bin/bash
+#PBS -N npl-dev
+#PBS -A SCSG0001
+#PBS -q casper
+#PBS -l select=1:ncpus=4:mpiprocs=4:mem=32GB
+#PBS -l walltime=03:00:00
+#PBS -j oe
+#
+#   Monthly build of the rolling NPL develop environment.
+#   Submit from a login node (output path set on the command line so $USER expands):
+#
+#     mkdir -p /glade/derecho/scratch/$USER/npl-scratch/develop/logs
+#     qsub -v REPO=/glade/work/$USER/nplplan/ncar-conda \
+#          -o /glade/derecho/scratch/$USER/npl-scratch/develop/logs/ \
+#          /glade/work/$USER/nplplan/ncar-conda/util/build_develop.pbs
+#
+#   Optional: -v ...,TAG=YYYY.MM (default: current year.month)
+#             -v ...,OUTDIR=<dir> write versions.yml there instead of the spec dir
+#             (for validation builds that must not overwrite the month's results)
+#   Does NOT commit, tag, or delete anything; that is reviewed by hand afterwards.
+#   Exit codes: 0 all checks pass; 2 channel guard; 3 prefix exists; 4 create failed; 5 env vars;
+#               6 env built but a check failed (see the build dir's REPORT.md); 7 test harness problem
+
+set -uo pipefail
+umask 022
+
+REPO=${REPO:?set REPO to the ncar-conda checkout}
+TAG=${TAG:-$(date +%Y.%m)}
+NAME=npl-dev-$TAG
+PREFIX=/glade/work/$USER/conda-envs/$NAME
+SPECDIR=$REPO/envs/npl-dev
+BUILDDIR=/glade/derecho/scratch/$USER/npl-scratch/develop/$TAG    # not SCRATCH: `module load conda` (ncarenv) overwrites SCRATCH and WORK
+OUTDIR=${OUTDIR:-$SPECDIR}
+mkdir -p $OUTDIR
+VERSIONS=$OUTDIR/versions.yml
+REPORT=$BUILDDIR/REPORT.md    # generated reports stay out of git
+mkdir -p $BUILDDIR
+rm -f $REPORT    # never leave last month's report looking current
+
+function fail_report {
+    { echo "# NPL develop $TAG"; echo; echo "**FAILED** on $(date +%F): $1 (PBS job ${PBS_JOBID:-n/a})"; } > $REPORT
+    >&2 echo "Error: $1"
+    exit $2
+}
+
+module -q purge
+module -q load conda
+
+# Guard: channels must be conda-forge only (user ~/.condarc can add others)
+channels=$(conda config --show channels | sed -n 's/^  - //p' | xargs)
+[[ $channels == "conda-forge" ]] || fail_report "effective conda channels are '$channels'; expected 'conda-forge' only" 2
+[[ -e $PREFIX ]] && fail_report "$PREFIX already exists (partial build?); remove it by hand and resubmit" 3
+
+echo "=== $(date) Creating $PREFIX"
+start=$SECONDS
+conda env create -y -p $PREFIX -f $SPECDIR/environment.yml \
+    || fail_report "conda env create failed; a partial $PREFIX may remain and must be removed by hand" 4
+build_min=$(( (SECONDS - start) / 60 ))
+# Env variables via activate.d/deactivate.d (not conda `variables:`; see envs/npl-dev/env_vars)
+$REPO/util/install_env_vars $PREFIX $SPECDIR/env_vars \
+    || fail_report "util/install_env_vars failed for $PREFIX" 5
+
+conda env export -p $PREFIX > $VERSIONS
+
+PY=$PREFIX/bin/python
+
+# Required MPI builds
+nompi=""
+grep -qE "^  - mpich=" $VERSIONS || nompi+=" mpich(missing)"
+for p in esmf h5py hdf5 libnetcdf libpnetcdf netcdf-fortran netcdf4 parallelio; do
+    grep -qE "^  - $p=[^=]+=mpi_mpich" $VERSIONS || nompi+=" $p"
+done
+
+# Quick checks with the test suite (real activation; full suite: tests/jobs/node_test.pbs)
+echo "=== $(date) Tests: smoke + single-node MPI"
+$REPO/tests/harness/run.sh $PREFIX $BUILDDIR/tests -m "smoke or mpi" -q > $BUILDDIR/tests.console 2>&1
+tests_rc=$?
+tail -5 $BUILDDIR/tests.console
+case $tests_rc in
+    0) tests_status="ok" ;;
+    1) tests_status="**FAIL** (test failures)" ;;
+    *) tests_status="**HARNESS PROBLEM** (exit $tests_rc; not a verdict on the env; see $BUILDDIR/tests.console)" ;;
+esac
+
+# Baselines: newest official release in the repo, and last month's develop (git HEAD)
+release_yml=$(ls -d $REPO/envs/npl/npl-20[0-9][0-9][ab] | sort -V | tail -1)/versions.yml
+prev_yml=$BUILDDIR/prev_versions.yml
+git -C $REPO show HEAD:envs/npl-dev/versions.yml > $prev_yml 2>/dev/null || rm -f $prev_yml
+
+{
+    echo "# NPL develop $TAG"
+    echo
+    echo "Built $(date +%F) in ${build_min} min with conda $(conda --version | cut -d' ' -f2); python $($PY -c 'import platform; print(platform.python_version())')."
+    echo
+    echo "## Checks"
+    echo
+    echo "- MPI builds: $([[ -z $nompi ]] && echo ok || echo "**NOT mpich:$nompi**")"
+    echo "- Tests (smoke + single-node MPI): $tests_status"
+    echo
+    $PY -I $REPO/tests/harness/report.py summary $BUILDDIR/tests 2>&1
+    echo
+    echo "## Changes"
+    echo
+    [[ -f $prev_yml ]] && python3 -I $REPO/util/diff_versions.py $prev_yml $VERSIONS \
+        --label-old "previous develop" --label-new "develop $TAG"
+    python3 -I $REPO/util/diff_versions.py $release_yml $VERSIONS \
+        --label-old "$(basename $(dirname $release_yml))" --label-new "develop $TAG"
+} > $REPORT
+
+# Retention (keep newest 3): report only, never delete
+old=$(ls -d /glade/work/$USER/conda-envs/npl-dev-* 2>/dev/null | sort -V | head -n -3)
+[[ -n $old ]] && echo "=== Retention: candidates for removal (not deleted):" && echo "$old"
+
+echo "=== $(date) Done. Report: $REPORT"
+(( tests_rc > 1 )) && exit 7
+[[ $tests_rc -eq 0 && -z $nompi ]] || exit 6

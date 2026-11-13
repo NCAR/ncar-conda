@@ -1,0 +1,31 @@
+#!/bin/bash
+#
+#   Install an NPL env-variables file and its activate.d/deactivate.d scripts into an env.
+#   Usage: install_env_vars PREFIX ENV_VARS_FILE
+#     e.g. install_env_vars /glade/work/$USER/conda-envs/npl-dev-2026.11 envs/npl-dev/env_vars
+#   Run after `conda env create` (build_develop.pbs does this), including rebuilds from a tag.
+#   Refuses if conda's own `variables:` also sets one of the keys: conda's deactivate would
+#   then still leave it exported as ''.
+
+set -euo pipefail
+prefix=${1:?usage: install_env_vars PREFIX ENV_VARS_FILE}
+vars=${2:?usage: install_env_vars PREFIX ENV_VARS_FILE}
+src=$(dirname "$(readlink -f "$0")")/npl-env-vars
+
+[[ -d $prefix/conda-meta ]] || { >&2 echo "Error: $prefix is not a conda env"; exit 1; }
+keys=$(grep -oE '^[A-Za-z_][A-Za-z0-9_]*=' "$vars" | tr -d = | xargs || true)
+[[ -n $keys ]] || { >&2 echo "Error: no KEY=VALUE lines in $vars"; exit 1; }
+
+state=$prefix/conda-meta/state
+if [[ -f $state ]]; then
+    clash=$(python3 -I -c 'import json,sys; v=json.load(open(sys.argv[1])).get("env_vars",{}); print(" ".join(k for k in sys.argv[2:] if k in v))' "$state" $keys)
+    [[ -z $clash ]] || { >&2 echo "Error: also set by conda variables: $clash (delete those keys from \"env_vars\" in $state; conda env config vars unset only marks them ***unset***, and deactivate still exports '')"; exit 1; }
+fi
+
+install -d -m 755 "$prefix/etc/npl" "$prefix/etc/conda/activate.d" "$prefix/etc/conda/deactivate.d"
+install -m 644 "$vars" "$prefix/etc/npl/env_vars"
+for sh in sh csh; do
+    install -m 644 "$src/activate.$sh"   "$prefix/etc/conda/activate.d/npl-env-vars.$sh"
+    install -m 644 "$src/deactivate.$sh" "$prefix/etc/conda/deactivate.d/npl-env-vars.$sh"
+done
+echo "Installed env vars ($keys) into $prefix"
