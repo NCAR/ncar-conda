@@ -7,6 +7,13 @@
 #PBS -j oe
 #
 #   Monthly build of the rolling NPL develop environment.
+#   Each month has its own spec dir, envs/npl-dev/npl-dev-YYYY.MM/ (environment.yml + env_vars, edited
+#   by hand; this job adds versions.yml). Seed it from the previous month before submitting:
+#
+#     cd /glade/work/$USER/nplplan/ncar-conda/envs/npl-dev
+#     prev=$(ls -d npl-dev-* | sort -V | tail -1); mkdir npl-dev-YYYY.MM
+#     cp $prev/environment.yml $prev/env_vars npl-dev-YYYY.MM/
+#
 #   Submit from a login node (output path set on the command line so $USER expands):
 #
 #     mkdir -p /glade/derecho/scratch/$USER/npl-scratch/develop/logs
@@ -14,11 +21,14 @@
 #          -o /glade/derecho/scratch/$USER/npl-scratch/develop/logs/ \
 #          /glade/work/$USER/nplplan/ncar-conda/util/build_develop.pbs
 #
-#   Optional: -v ...,TAG=YYYY.MM (default: current year.month)
+#   Optional: -v ...,TAG=YYYY.MM (default: current year.month; env name npl-dev-$TAG)
+#             -v ...,SPECDIR=<dir> spec dir (default: envs/npl-dev/npl-dev-$TAG), e.g. for a
+#                validation TAG like 2026.12b that reuses envs/npl-dev/npl-dev-2026.12
 #             -v ...,OUTDIR=<dir> write versions.yml there instead of the spec dir
 #             (for validation builds that must not overwrite the month's results)
 #   Does NOT commit, tag, or delete anything; that is reviewed by hand afterwards.
-#   Exit codes: 0 all checks pass; 2 channel guard; 3 prefix exists; 4 create failed; 5 env vars;
+#   Exit codes: 0 all checks pass; 1 spec dir incomplete; 2 channel guard; 3 prefix exists;
+#               4 create failed; 5 env vars;
 #               6 env built but a check failed (see the build dir's REPORT.md); 7 test harness problem
 
 set -uo pipefail
@@ -28,10 +38,9 @@ REPO=${REPO:?set REPO to the ncar-conda checkout}
 TAG=${TAG:-$(date +%Y.%m)}
 NAME=npl-dev-$TAG
 PREFIX=/glade/work/$USER/conda-envs/$NAME
-SPECDIR=$REPO/envs/npl-dev
+SPECDIR=${SPECDIR:-$REPO/envs/npl-dev/$NAME}
 BUILDDIR=/glade/derecho/scratch/$USER/npl-scratch/develop/$TAG    # not SCRATCH: `module load conda` (ncarenv) overwrites SCRATCH and WORK
 OUTDIR=${OUTDIR:-$SPECDIR}
-mkdir -p $OUTDIR
 VERSIONS=$OUTDIR/versions.yml
 REPORT=$BUILDDIR/REPORT.md    # generated reports stay out of git
 mkdir -p $BUILDDIR
@@ -42,6 +51,11 @@ function fail_report {
     >&2 echo "Error: $1"
     exit $2
 }
+
+for f in environment.yml env_vars; do
+    [[ -f $SPECDIR/$f ]] || fail_report "$SPECDIR/$f missing; seed the month's spec dir first (see header)" 1
+done
+mkdir -p $OUTDIR
 
 module -q purge
 module -q load conda
@@ -56,7 +70,7 @@ start=$SECONDS
 conda env create -y -p $PREFIX -f $SPECDIR/environment.yml \
     || fail_report "conda env create failed; a partial $PREFIX may remain and must be removed by hand" 4
 build_min=$(( (SECONDS - start) / 60 ))
-# Env variables via activate.d/deactivate.d (not conda `variables:`; see envs/npl-dev/env_vars)
+# Env variables via activate.d/deactivate.d (not conda `variables:`; see $SPECDIR/env_vars)
 $REPO/util/install_env_vars $PREFIX $SPECDIR/env_vars \
     || fail_report "util/install_env_vars failed for $PREFIX" 5
 
@@ -82,10 +96,13 @@ case $tests_rc in
     *) tests_status="**HARNESS PROBLEM** (exit $tests_rc; not a verdict on the env; see $BUILDDIR/tests.console)" ;;
 esac
 
-# Baselines: newest official release in the repo, and last month's develop (git HEAD)
-release_yml=$(ls -d $REPO/envs/npl/npl-20[0-9][0-9][ab] | sort -V | tail -1)/versions.yml
-prev_yml=$BUILDDIR/prev_versions.yml
-git -C $REPO show HEAD:envs/npl-dev/versions.yml > $prev_yml 2>/dev/null || rm -f $prev_yml
+# Baselines: newest release in the repo that has a lock, and the previous develop month's lock
+release_yml=$(ls $REPO/envs/npl/npl-20[0-9][0-9][ab]/versions.yml 2>/dev/null | sort -V | tail -1)
+# previous = newest month dir that sorts before this build's spec dir (by dir name, so OUTDIR/path spelling
+# don't matter, and rebuilding an old month doesn't compare against a later one)
+me=$(basename "$(readlink -f "$SPECDIR")")
+prev_yml=$(ls $REPO/envs/npl-dev/npl-dev-*/versions.yml 2>/dev/null | sort -V \
+           | awk -F/ -v me="$me" '$(NF-1) == me {exit} {last = $0} END {print last}')
 
 {
     echo "# NPL develop $TAG"
@@ -101,9 +118,9 @@ git -C $REPO show HEAD:envs/npl-dev/versions.yml > $prev_yml 2>/dev/null || rm -
     echo
     echo "## Changes"
     echo
-    [[ -f $prev_yml ]] && python3 -I $REPO/util/diff_versions.py $prev_yml $VERSIONS \
-        --label-old "previous develop" --label-new "develop $TAG"
-    python3 -I $REPO/util/diff_versions.py $release_yml $VERSIONS \
+    [[ -n $prev_yml ]] && python3 -I $REPO/util/diff_versions.py $prev_yml $VERSIONS \
+        --label-old "$(basename $(dirname $prev_yml))" --label-new "develop $TAG"
+    [[ -n $release_yml ]] && python3 -I $REPO/util/diff_versions.py $release_yml $VERSIONS \
         --label-old "$(basename $(dirname $release_yml))" --label-new "develop $TAG"
 } > $REPORT
 

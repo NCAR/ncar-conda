@@ -2,7 +2,7 @@
 
 A variable that was unset before activation must be unset again afterwards, not exported as ''
 (conda's own `variables:` does the latter, and UCX_TLS='' breaks system openmpi/ucx in that
-shell; see envs/npl-dev/env_vars). A preset value must come back unchanged. Checked in
+shell; see envs/npl-dev/npl-dev-YYYY.MM/env_vars). A preset value must come back unchanged. Checked in
 bash and, when installed, tcsh, from a shell without this env active.
 """
 import os

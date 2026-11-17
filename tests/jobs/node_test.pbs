@@ -13,7 +13,7 @@
 #          -o /glade/derecho/scratch/$USER/npl-scratch/tests/ $T/jobs/node_test.pbs
 #
 #   Optional -v: PYTEST_ARGS (e.g. "-m 'smoke or mpi'", "--run-pbs --account=X")
-#                CANDIDATE_SPEC=<environment.yml> when the candidate was created from a full lock
+#                CANDIDATE_SPEC / CONTROL_SPEC=<environment.yml> for an env created from a full lock
 #   Results: /glade/derecho/scratch/$USER/npl-scratch/tests/<LABEL>/<jobid>/
 #            {<env>/junit.xml, <env>/fingerprint.json, SUMMARY.md}
 #   Default login modules are deliberately left loaded (realistic user session).
@@ -30,8 +30,9 @@ rc=0
 for prefix in "$CONTROL" "$CANDIDATE"; do
     name=$(basename "$prefix")
     echo "=== $(date +%T) $name"
-    spec=""                              # lock-built candidate: test its month's environment.yml
+    spec=""                              # lock-built env: test its own environment.yml
     [[ $prefix == "$CANDIDATE" && -n ${CANDIDATE_SPEC:-} ]] && spec=$CANDIDATE_SPEC
+    [[ $prefix == "$CONTROL" && -n ${CONTROL_SPEC:-} ]] && spec=$CONTROL_SPEC
     eval "NPL_SPEC=\"$spec\" $TESTS/harness/run.sh \"$prefix\" \"$OUT/$name\" ${PYTEST_ARGS:-}" > "$OUT/$name.console" 2>&1
     r=$?
     echo "    pytest exit $r"

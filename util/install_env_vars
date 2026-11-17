@@ -1,8 +1,9 @@
 #!/bin/bash
 #
-#   Install an NPL env-variables file and its activate.d/deactivate.d scripts into an env.
+#   Install an NPL env-variables file and its activate.d/deactivate.d scripts into an env,
+#   plus bin/npl-pbs-rsh (PBS-based launcher for mpich hydra; used only if env_vars selects it).
 #   Usage: install_env_vars PREFIX ENV_VARS_FILE
-#     e.g. install_env_vars /glade/work/$USER/conda-envs/npl-dev-2026.11 envs/npl-dev/env_vars
+#     e.g. install_env_vars /glade/work/$USER/conda-envs/npl-dev-2026.11 envs/npl-dev/npl-dev-2026.11/env_vars
 #   Run after `conda env create` (build_develop.pbs does this), including rebuilds from a tag.
 #   Refuses if conda's own `variables:` also sets one of the keys: conda's deactivate would
 #   then still leave it exported as ''.
@@ -24,6 +25,7 @@ fi
 
 install -d -m 755 "$prefix/etc/npl" "$prefix/etc/conda/activate.d" "$prefix/etc/conda/deactivate.d"
 install -m 644 "$vars" "$prefix/etc/npl/env_vars"
+install -m 755 "$src/npl-pbs-rsh" "$prefix/bin/npl-pbs-rsh"   # hydra launcher via PBS (see the script)
 for sh in sh csh; do
     install -m 644 "$src/activate.$sh"   "$prefix/etc/conda/activate.d/npl-env-vars.$sh"
     install -m 644 "$src/deactivate.$sh" "$prefix/etc/conda/deactivate.d/npl-env-vars.$sh"
