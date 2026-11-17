@@ -11,3 +11,11 @@
 # started from the shell, including system openmpi on Casper (Derecho's cray-mpich does not use UCX).
 UCX_TLS=tcp
 UCX_MODULES=^*gda*
+#
+# mpich's hydra starts ranks on other nodes with ssh by default, and ssh is refused between Derecho GPU
+# nodes (all earlier NPL releases fail there). These make it start them through PBS instead (pbs_tmrsh
+# via $CONDA_PREFIX/bin/npl-pbs-rsh, found on PATH; outside a PBS job it falls back to ssh). Only
+# multi-node mpiexec uses them. To get plain ssh back: `unset HYDRA_LAUNCHER HYDRA_LAUNCHER_EXEC`
+# after activation. Added 2026-11-17 (tested in npl-dev-2026.11).
+HYDRA_LAUNCHER=rsh
+HYDRA_LAUNCHER_EXEC=npl-pbs-rsh
