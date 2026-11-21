@@ -52,6 +52,18 @@ def _gpu():
     return subprocess.run(["nvidia-smi", "-L"], capture_output=True).returncode == 0
 
 
+def _gpu_names():
+    """GPU model names (for the report's arch column); empty without a GPU."""
+    if shutil.which("nvidia-smi") is None:
+        return []
+    try:
+        p = subprocess.run(["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"], capture_output=True,
+                           text=True, timeout=30)
+    except subprocess.TimeoutExpired:
+        return []
+    return sorted({line.strip() for line in p.stdout.splitlines() if line.strip()}) if p.returncode == 0 else []
+
+
 def _cpu_model():
     try:
         for line in open("/proc/cpuinfo"):
@@ -88,6 +100,7 @@ def pytest_sessionstart(session):
         "python": platform.python_version(),
         "host": socket.gethostname(),
         "cpu": _cpu_model(),
+        "gpus": _gpu_names(),
         "capabilities": session.config.npl_caps,
         "env_vars_declared": env_vars_declared(),
         "environment": env,
@@ -108,6 +121,24 @@ def pytest_collection_modifyitems(config, items):
         for marker, (skip, reason) in gates.items():
             if skip and marker in item.keywords:
                 item.add_marker(pytest.mark.skip(reason=reason))
+        # labels for reports (junit <properties>): what hardware, communication and kind of check
+        item.user_properties += [("arch", "gpu" if "gpu" in item.keywords else "cpu"),
+                                 ("comms", "mpi" if "mpi" in item.keywords else "serial"),
+                                 ("type", report_type(item.nodeid))]
+        if "pbs" in item.keywords:     # submits jobs: runtime is queue wait, not judged
+            item.user_properties.append(("pbs", "1"))
+
+
+def report_type(nodeid):
+    """import / activate / kernel / app, from the test's file (keep in sync with harness/report.py)."""
+    path = nodeid.split("::")[0]
+    if path.startswith("smoke/test_imports"):
+        return "import"
+    if path.startswith("smoke/test_activation"):
+        return "activate"
+    if path.startswith("jupyterstack/"):
+        return "kernel"
+    return "app"
 
 
 @pytest.fixture(autouse=True)

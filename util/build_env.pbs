@@ -1,0 +1,165 @@
+#!/bin/bash
+#PBS -N npl-build
+#PBS -q casper
+#PBS -l select=1:ncpus=4:mpiprocs=4:mem=32GB
+#PBS -l walltime=03:00:00
+#PBS -j oe
+#
+#   Build an NPL env (release or monthly develop) from a spec dir, then check and test it.
+#   A spec dir is envs/npl/npl-YYYY[ab]/ or envs/npl-dev/npl-dev-YYYY.MM/ and holds
+#   environment.yml + env_vars (edited by hand). See README.md, "Maintaining NPL environments".
+#
+#   Submit from the repo root on a Casper login node (relative paths are resolved from there):
+#
+#     mkdir -p /glade/derecho/scratch/$USER/npl-scratch/builds
+#     qsub -A <project> -v SPEC=envs/npl-dev/npl-dev-YYYY.MM \
+#          -o /glade/derecho/scratch/$USER/npl-scratch/builds/ util/build_env.pbs
+#
+#   -v options (comma-separated):
+#     SPEC=<spec dir>         required
+#     FROM=spec|lock          spec (default): solve environment.yml, write the new lock to SPEC/versions.yml
+#                             (only if SPEC has none yet; otherwise it stays in the build dir).
+#                             lock: recreate exactly from LOCK (default SPEC/versions.yml); no solve,
+#                             and the export must match the lock. If SPEC has no versions.yml (staging
+#                             a release from a develop lock), the export is written there.
+#     LOCK=<versions.yml>     lock file for FROM=lock (e.g. another month's lock, to stage a release)
+#     PREFIX=<path>           env location (default /glade/work/$USER/conda-envs/<spec dir name>)
+#     OUTROOT=<dir>           build output root (default /glade/derecho/scratch/$USER/npl-scratch)
+#     REPORT=1                also write the results to $OUTROOT/builds/<name>/REPORT.md
+#   Results (checks, quick tests, package changes) are printed at the end of the job log.
+#   Output: $OUTROOT/builds/<name>/{versions.yml, tests/, tests.console[, REPORT.md]}
+#   Never commits, tags or deletes anything.
+#   Exit codes: 0 all checks pass; 1 bad SPEC/LOCK; 2 channel guard; 3 prefix exists; 4 create failed;
+#               5 env vars; 6 env built but a check failed (see the results); 7 test harness problem
+
+set -uo pipefail
+umask 022
+
+# Names avoid WORK/SCRATCH: `module load conda` (ncarenv) overwrites those.
+cd "${PBS_O_WORKDIR:-$PWD}"
+SPEC=$(readlink -f "${SPEC:?set SPEC to the env spec dir, e.g. envs/npl-dev/npl-dev-2026.12}")
+FROM=${FROM:-spec}
+NAME=$(basename "$SPEC")
+KIND=$(basename "$(dirname "$SPEC")")          # npl or npl-dev
+REPO=$(git -C "$SPEC" rev-parse --show-toplevel 2>/dev/null) || { >&2 echo "Error: $SPEC is not in a git checkout"; exit 1; }
+PREFIX=${PREFIX:-/glade/work/$USER/conda-envs/$NAME}
+OUTROOT=${OUTROOT:-/glade/derecho/scratch/$USER/npl-scratch}
+BUILDDIR=$OUTROOT/builds/$NAME
+VERSIONS=$BUILDDIR/versions.yml
+REPORT_MD=$BUILDDIR/REPORT.md    # generated reports stay out of git
+mkdir -p "$BUILDDIR"
+rm -f "$REPORT_MD"               # never leave an old report looking current
+# print results to the job log; with REPORT=1 also save them as REPORT.md
+function emit { if [[ -n ${REPORT:-} ]]; then tee "$REPORT_MD"; else cat; fi; }
+
+function fail_report {
+    { echo "# $NAME build"; echo; echo "**FAILED** on $(date +%F): $1 (PBS job ${PBS_JOBID:-n/a})"; } | emit
+    >&2 echo "Error: $1"
+    exit $2
+}
+
+for f in environment.yml env_vars; do
+    [[ -f $SPEC/$f ]] || fail_report "$SPEC/$f missing (seed it from the previous spec dir; see README.md)" 1
+done
+case $FROM in
+    spec) SRC=$SPEC/environment.yml ;;
+    lock) LOCK=$(readlink -f "${LOCK:-$SPEC/versions.yml}"); SRC=$LOCK
+          [[ -f $LOCK ]] || fail_report "lock $LOCK not found" 1 ;;
+    *)    fail_report "FROM must be spec or lock, not '$FROM'" 1 ;;
+esac
+
+module -q purge
+module -q load conda
+
+# Guard: channels must be conda-forge only (a user ~/.condarc can add others)
+channels=$(conda config --show channels | sed -n 's/^  - //p' | xargs)
+[[ $channels == "conda-forge" ]] || fail_report "effective conda channels are '$channels'; expected 'conda-forge' only" 2
+[[ -e $PREFIX ]] && fail_report "$PREFIX already exists (partial build?); remove it by hand or set PREFIX" 3
+
+echo "=== $(date) Creating $PREFIX from $SRC"
+start=$SECONDS
+conda env create -y -p "$PREFIX" -f "$SRC" \
+    || fail_report "conda env create failed; a partial $PREFIX may remain and must be removed by hand" 4
+build_min=$(( (SECONDS - start) / 60 ))
+# Env variables via activate.d/deactivate.d (not conda `variables:`; see the env_vars file)
+"$REPO/util/install_env_vars" "$PREFIX" "$SPEC/env_vars" \
+    || fail_report "util/install_env_vars failed for $PREFIX" 5
+
+conda env export -p "$PREFIX" > "$VERSIONS"
+lock_note=""
+if [[ $FROM == spec ]]; then
+    if [[ -e $SPEC/versions.yml ]]; then
+        lock_note="SPEC already has a versions.yml; the new lock is only in $VERSIONS (copy it by hand if wanted)"
+    else
+        cp "$VERSIONS" "$SPEC/versions.yml"; lock_note="written to $SPEC/versions.yml"
+    fi
+else
+    diff -q <(grep -vE '^(name|prefix):' "$LOCK") <(grep -vE '^(name|prefix):' "$VERSIONS") >/dev/null \
+        && lock_note="identical to $LOCK" || lock_note="**DIFFERS from $LOCK**"
+    # staging a new release from another lock: the spec dir gets this env's export
+    [[ -e $SPEC/versions.yml ]] || { cp "$VERSIONS" "$SPEC/versions.yml"; lock_note+="; written to $SPEC/versions.yml"; }
+fi
+
+PY=$PREFIX/bin/python
+
+# Required MPI builds
+nompi=""
+grep -qE "^  - mpich=" "$VERSIONS" || nompi+=" mpich(missing)"
+for p in esmf h5py hdf5 libnetcdf libpnetcdf netcdf-fortran netcdf4 parallelio; do
+    grep -qE "^  - $p=[^=]+=mpi_mpich" "$VERSIONS" || nompi+=" $p"
+done
+
+# Quick checks with the test suite (real activation; full suite: tests/jobs/submit_node_tests.sh).
+# A lock-built env records every package as requested, so test the spec's own package list.
+echo "=== $(date) Tests: smoke + single-node MPI"
+spec_for_tests=""
+[[ $FROM == lock ]] && spec_for_tests=$SPEC/environment.yml
+NPL_SPEC=$spec_for_tests "$REPO/tests/harness/run.sh" "$PREFIX" "$BUILDDIR/tests" -m "smoke or mpi" -q \
+    > "$BUILDDIR/tests.console" 2>&1
+tests_rc=$?
+tail -5 "$BUILDDIR/tests.console"
+case $tests_rc in
+    0) tests_status="ok" ;;
+    1) tests_status="**FAIL** (test failures)" ;;
+    *) tests_status="**HARNESS PROBLEM** (exit $tests_rc; not a verdict on the env; see $BUILDDIR/tests.console)" ;;
+esac
+
+# Baselines: the previous spec dir of the same kind (newest that sorts before this one, by dir name),
+# and for develop builds also the newest release
+prev_yml=$(ls "$REPO"/envs/$KIND/*/versions.yml 2>/dev/null | sort -V \
+           | awk -F/ -v me="$NAME" '$(NF-1) == me {exit} {last = $0} END {print last}')
+release_yml=""
+[[ $KIND == npl-dev ]] && release_yml=$(ls "$REPO"/envs/npl/npl-20[0-9][0-9][ab]/versions.yml 2>/dev/null | sort -V | tail -1)
+
+echo "=== Results"
+{
+    echo "# $NAME build"
+    echo
+    echo "Built $(date +%F) from $FROM ($SRC) in ${build_min} min with conda $(conda --version | cut -d' ' -f2);" \
+         "python $($PY -c 'import platform; print(platform.python_version())'). Prefix: $PREFIX"
+    echo
+    echo "## Checks"
+    echo
+    echo "- Lock: $lock_note"
+    echo "- MPI builds: $([[ -z $nompi ]] && echo ok || echo "**NOT mpich:$nompi**")"
+    echo "- Tests (smoke + single-node MPI): $tests_status"
+    echo
+    $PY -I "$REPO/tests/harness/report.py" summary "$BUILDDIR/tests" 2>&1
+    echo
+    echo "## Changes"
+    echo
+    for base in $prev_yml $release_yml; do
+        python3 -I "$REPO/util/diff_versions.py" "$base" "$VERSIONS" \
+            --label-old "$(basename "$(dirname "$base")")" --label-new "$NAME"
+    done
+} | emit
+
+# Retention for develop envs (keep newest 3): report only, never delete
+if [[ $KIND == npl-dev ]]; then
+    old=$(ls -d "$(dirname "$PREFIX")"/npl-dev-* 2>/dev/null | sort -V | head -n -3)
+    [[ -n $old ]] && echo "=== Retention: candidates for removal (not deleted):" && echo "$old"
+fi
+
+echo "=== $(date) Done.$([[ -n ${REPORT:-} ]] && echo " Report: $REPORT_MD")"
+(( tests_rc > 1 )) && exit 7
+[[ $tests_rc -eq 0 && -z $nompi && $lock_note != *DIFFERS* ]] || exit 6

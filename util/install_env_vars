@@ -4,7 +4,7 @@
 #   plus bin/npl-pbs-rsh (PBS-based launcher for mpich hydra; used only if env_vars selects it).
 #   Usage: install_env_vars PREFIX ENV_VARS_FILE
 #     e.g. install_env_vars /glade/work/$USER/conda-envs/npl-dev-2026.11 envs/npl-dev/npl-dev-2026.11/env_vars
-#   Run after `conda env create` (build_develop.pbs does this), including rebuilds from a tag.
+#   Run after `conda env create` (util/build_env.pbs does this), including rebuilds from a tag.
 #   Refuses if conda's own `variables:` also sets one of the keys: conda's deactivate would
 #   then still leave it exported as ''.
 

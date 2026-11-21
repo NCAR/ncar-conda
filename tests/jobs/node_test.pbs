@@ -1,21 +1,25 @@
 #!/bin/bash
 #PBS -N npl-tests
-#PBS -A SCSG0001
 #PBS -l walltime=01:30:00
 #PBS -j oe
 #
 #   Run the NPL test suite on one node type for a control env and a candidate env,
-#   then compare them. Queue/select come from the qsub command line, e.g.:
+#   then compare them. Usually submitted for all node types by tests/jobs/submit_node_tests.sh.
+#   Account, queue and select come from the qsub command line, e.g.:
 #
-#     T=/glade/work/$USER/nplplan/ncar-conda/tests
-#     qsub -q casper -l select=2:ncpus=4:mpiprocs=4:mem=32GB -l place=scatter \
+#     T=$(pwd)/tests      # from the repo root
+#     qsub -A <project> -q casper -l select=2:ncpus=4:mpiprocs=4:mem=32GB -l place=scatter \
 #          -v TESTS=$T,CONTROL=<prefix>,CANDIDATE=<prefix>,LABEL=casper-cpu \
 #          -o /glade/derecho/scratch/$USER/npl-scratch/tests/ $T/jobs/node_test.pbs
 #
 #   Optional -v: PYTEST_ARGS (e.g. "-m 'smoke or mpi'", "--run-pbs --account=X")
 #                CANDIDATE_SPEC / CONTROL_SPEC=<environment.yml> for an env created from a full lock
-#   Results: /glade/derecho/scratch/$USER/npl-scratch/tests/<LABEL>/<jobid>/
-#            {<env>/junit.xml, <env>/fingerprint.json, SUMMARY.md}
+#                RUNDIR=<dir> (set by submit_node_tests.sh): results go to $RUNDIR/<LABEL>/, and the job
+#                then rebuilds $RUNDIR/SUMMARY.{txt,md} and RESULTS.{txt,md} from every finished node type
+#                OUTROOT=<dir> (without RUNDIR; default /glade/derecho/scratch/$USER/npl-scratch)
+#   Results: $RUNDIR/<LABEL>/ or $OUTROOT/tests/<LABEL>/<jobid>/
+#            {<env>/junit.xml, <env>/fingerprint.json, compare.md}; warmup/ holds the untimed
+#            import pass run first for each env (its result is not used)
 #   Default login modules are deliberately left loaded (realistic user session).
 
 set -uo pipefail
@@ -23,16 +27,34 @@ TESTS=${TESTS:?set TESTS to the tests/ directory}
 CONTROL=${CONTROL:?set CONTROL to the release env prefix}
 CANDIDATE=${CANDIDATE:?set CANDIDATE to the candidate env prefix}
 LABEL=${LABEL:-$(hostname -s)}
-OUT=/glade/derecho/scratch/$USER/npl-scratch/tests/$LABEL/${PBS_JOBID%%.*}
-mkdir -p "$OUT"
+OUTROOT=${OUTROOT:-/glade/derecho/scratch/$USER/npl-scratch}
+OUT=$OUTROOT/tests/$LABEL/${PBS_JOBID%%.*}
+[[ -n ${RUNDIR:-} ]] && OUT=$RUNDIR/$LABEL
+mkdir -p "$OUT/warmup"
+
+function spec_for {                     # lock-built env: test its own environment.yml
+    [[ $1 == "$CANDIDATE" && -n ${CANDIDATE_SPEC:-} ]] && { echo "$CANDIDATE_SPEC"; return; }
+    [[ $1 == "$CONTROL" && -n ${CONTROL_SPEC:-} ]] && { echo "$CONTROL_SPEC"; return; }
+    echo ""
+}
+
+# Untimed warm-up: the first read of an env's files on a node can take several times longer
+# than later reads (job 6776893: 155 s cold vs 58 s warm for the same tests). Without this,
+# whichever env this node has not read yet looks slower in the runtime comparison.
+# Its result is ignored; output goes to $OUT/warmup/.
+for prefix in "$CONTROL" "$CANDIDATE"; do
+    name=$(basename "$prefix")
+    t0=$SECONDS
+    NPL_SPEC=$(spec_for "$prefix") timeout 600 "$TESTS/harness/run.sh" "$prefix" "$OUT/warmup/$name" \
+        -m smoke -k test_imports -q > "$OUT/warmup/$name.console" 2>&1
+    echo "=== $(date +%T) warm-up $name: $((SECONDS - t0)) s (not counted)"
+done
 
 rc=0
 for prefix in "$CONTROL" "$CANDIDATE"; do
     name=$(basename "$prefix")
     echo "=== $(date +%T) $name"
-    spec=""                              # lock-built env: test its own environment.yml
-    [[ $prefix == "$CANDIDATE" && -n ${CANDIDATE_SPEC:-} ]] && spec=$CANDIDATE_SPEC
-    [[ $prefix == "$CONTROL" && -n ${CONTROL_SPEC:-} ]] && spec=$CONTROL_SPEC
+    spec=$(spec_for "$prefix")
     eval "NPL_SPEC=\"$spec\" $TESTS/harness/run.sh \"$prefix\" \"$OUT/$name\" ${PYTEST_ARGS:-}" > "$OUT/$name.console" 2>&1
     r=$?
     echo "    pytest exit $r"
@@ -50,7 +72,10 @@ py=$(readlink -f "$CANDIDATE")/bin/python
         "$py" -I "$TESTS/harness/report.py" summary "$OUT/$(basename "$prefix")"
         echo
     done
-} > "$OUT/SUMMARY.md" 2>&1
-cat "$OUT/SUMMARY.md"
+} > "$OUT/compare.md" 2>&1
+cat "$OUT/compare.md"
 echo "Results: $OUT"
+if [[ -n ${RUNDIR:-} ]]; then
+    "$py" -I "$TESTS/harness/report.py" collect "$RUNDIR" --ended "${PBS_JOBID:-none}" || echo "Warning: could not update $RUNDIR/SUMMARY.* and RESULTS.*"
+fi
 exit $rc
