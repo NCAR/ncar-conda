@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -N npl-tests
-#PBS -l walltime=01:30:00
+#PBS -l walltime=00:45:00
 #PBS -j oe
 #
 #   Run the NPL test suite on one node type for a control env and a candidate env,
@@ -19,7 +19,8 @@
 #                OUTROOT=<dir> (without RUNDIR; default /glade/derecho/scratch/$USER/npl-scratch)
 #   Results: $RUNDIR/<LABEL>/ or $OUTROOT/tests/<LABEL>/<jobid>/
 #            {<env>/junit.xml, <env>/fingerprint.json, compare.md}; warmup/ holds the untimed
-#            import pass run first for each env (its result is not used)
+#            import pass run first for each env (its result is not used); rerun/<env>/<n>/ the two extra
+#            runs of tests flagged slower (the reports use their mean time for those tests)
 #   Default login modules are deliberately left loaded (realistic user session).
 
 set -uo pipefail
@@ -40,13 +41,15 @@ function spec_for {                     # lock-built env: test its own environme
 
 # Untimed warm-up: the first read of an env's files on a node can take several times longer
 # than later reads (job 6776893: 155 s cold vs 58 s warm for the same tests). Without this,
-# whichever env this node has not read yet looks slower in the runtime comparison.
+# whichever env this node has not read yet looks slower in the runtime comparison. Other one-time costs
+# (e.g. uxarray compiling and caching numba code on first use) are handled by the rerun below.
 # Its result is ignored; output goes to $OUT/warmup/.
 for prefix in "$CONTROL" "$CANDIDATE"; do
     name=$(basename "$prefix")
     t0=$SECONDS
     NPL_SPEC=$(spec_for "$prefix") timeout 600 "$TESTS/harness/run.sh" "$prefix" "$OUT/warmup/$name" \
         -m smoke -k test_imports -q > "$OUT/warmup/$name.console" 2>&1
+    (( $? == 124 )) && echo "    warm-up hit its 600 s limit; timed results for $name may include cold-start time"
     echo "=== $(date +%T) warm-up $name: $((SECONDS - t0)) s (not counted)"
 done
 
@@ -63,6 +66,25 @@ for prefix in "$CONTROL" "$CANDIDATE"; do
 done
 
 py=$(readlink -f "$CANDIDATE")/bin/python
+
+# Targeted rerun: tests flagged slower (report.py's FAIL rule) run twice more per env, alternating envs so both
+# see the same node conditions; the reports then use the mean of the reruns for those tests. Status stays the
+# main run's. Output: $OUT/rerun/<env>/<n>/.
+ids=$("$py" -I "$TESTS/harness/report.py" slower "$OUT/$(basename "$CONTROL")" "$OUT/$(basename "$CANDIDATE")" \
+      "$TESTS" 2>"$OUT/rerun-select.err") || { echo "    rerun skipped: could not list slower tests (see $OUT/rerun-select.err)"; ids=""; }
+if [[ -n $ids ]]; then
+    echo "=== $(date +%T) rerun: $(wc -w <<< "$ids") tests flagged slower, 2 more runs per env"
+    for n in 1 2; do
+        for prefix in "$CONTROL" "$CANDIDATE"; do
+            name=$(basename "$prefix")
+            mkdir -p "$OUT/rerun/$name"
+            NPL_SPEC=$(spec_for "$prefix") NPL_TEST_PATHS="$ids" timeout 900 "$TESTS/harness/run.sh" "$prefix" \
+                "$OUT/rerun/$name/$n" -q > "$OUT/rerun/$name/$n.console" 2>&1
+            (( $? == 124 )) && echo "    rerun $n of $name hit its 900 s limit; it is not counted"
+        done
+    done
+fi
+
 {
     echo "# NPL tests on $LABEL (job ${PBS_JOBID:-n/a}, $(date +%F))"
     echo

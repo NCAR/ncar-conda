@@ -57,9 +57,10 @@ def launch_cmd(mode, tmp_path, hold=0):
             "--min-nodes", str(min_nodes), "--hold", str(hold)]
 
 
-def start(cmd, env):
-    """mpiexec in its own process group, so a timeout kills proxies and ranks too."""
-    return subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+def start(cmd, env, stdout=subprocess.PIPE):
+    """mpiexec in its own process group, so a timeout kills proxies and ranks too.
+    With the default pipe, read it while waiting (communicate): ranks block once 64 KiB of output is unread."""
+    return subprocess.Popen(cmd, env=env, stdout=stdout, stderr=subprocess.STDOUT,
                             text=True, start_new_session=True)
 
 
@@ -125,7 +126,11 @@ def test_mpi_on_gpu_node(transport, tmp_path, record_property, save_log):
     psutil = pytest.importorskip("psutil")
     if not MPIEXEC.exists():
         pytest.skip("env has no mpiexec")
-    proc = start(launch_cmd("single", tmp_path, hold=15), mpi_env(transport))
+    # output to a file, not a pipe: this loop doesn't read while it polls, and on Casper UCX_PROTO_INFO prints
+    # >64 KiB, which filled the pipe and held every run to the 360 s deadline (2026-11-21)
+    log_path = tmp_path / "mpiexec.log"
+    with open(log_path, "w") as out:
+        proc = start(launch_cmd("single", tmp_path, hold=15), mpi_env(transport), stdout=out)
     most, deadline = 0, time.monotonic() + 360
     try:
         while proc.poll() is None and time.monotonic() < deadline:
@@ -138,10 +143,11 @@ def test_mpi_on_gpu_node(transport, tmp_path, record_property, save_log):
             gpu_pids = {int(p) for p in q.stdout.split() if p.strip().isdigit()}
             most = max(most, len(ours & gpu_pids))
             time.sleep(2)
-        log = proc.communicate(timeout=max(1, deadline - time.monotonic()))[0]
+        proc.wait(timeout=max(1, deadline - time.monotonic()))
     finally:
         kill_group(proc)
-    save_log(f"gpu-{transport}", log)
+        log = log_path.read_text()
+        save_log(f"gpu-{transport}", log)       # also on a timeout, for diagnosis
     record_run(record_property, transport, log)
     record_property("ranks_with_gpu_context", most)
     check(proc, log)

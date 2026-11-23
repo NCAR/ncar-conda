@@ -3,7 +3,8 @@
 #   Submit tests/jobs/node_test.pbs (control vs candidate) on NPL node types:
 #   Casper CPU, V100, A100, H100 and Derecho CPU, A100. All jobs of one submission share a run dir,
 #   and each job rebuilds SUMMARY.txt (pass/fail per node type and test type) and RESULTS.txt (details)
-#   there when it finishes, so they always cover every finished node type. Prints the qsub commands; submits only with --submit.
+#   there when it finishes, so they always cover every finished node type. Prints the plan (node types, hardware,
+#   test types); submits only with --submit.
 #
 #   Usage: submit_node_tests.sh -A PROJECT [options] CONTROL_PREFIX CANDIDATE_PREFIX
 #     --scope full|single|multi  full (default): 2 nodes per node type, whole suite
@@ -14,24 +15,26 @@
 #                                derecho-cpu derecho-a100)
 #     --candidate-spec FILE      environment.yml to test against when CANDIDATE was built from a lock
 #     --control-spec FILE        same for CONTROL
-#     --submit                   actually run the qsub commands (default: print them only)
+#     --submit                   submit the jobs (default: print the plan only)
+#     --show-qsub                also print the qsub commands
 #     OUTROOT=<dir> in the environment changes the output root (default /glade/derecho/scratch/$USER/npl-scratch)
-#   Run from a Casper login node. Derecho jobs go to develop@desched1, which accepts jobs from Casper.
+#   Run from a Casper or Derecho login node: queues name their server (casper@casper-pbs, develop@desched1).
 #   Results: $OUTROOT/tests/runs/<date>_<control>-vs-<candidate>/SUMMARY.txt and RESULTS.txt (and .md);
 #   rebuild them by hand with tests/harness/report.py collect <run dir>
 
 set -euo pipefail
 tests=$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)
-account="" submit=0 only="" cand_spec="" ctrl_spec="" scope=full hw=all pos=()
+account="" submit=0 show_qsub=0 only="" cand_spec="" ctrl_spec="" scope=full hw=all pos=()
 while [[ $# -gt 0 ]]; do
     case $1 in
         -A) account=$2; shift 2 ;;
         --submit) submit=1; shift ;;
+        --show-qsub) show_qsub=1; shift ;;
         --scope) scope=$2; shift 2 ;;
         --hw) hw=$2; shift 2 ;;
         --only) only=$2; shift 2 ;;
-        --candidate-spec) cand_spec=$(readlink -f "$2"); shift 2 ;;
-        --control-spec) ctrl_spec=$(readlink -f "$2"); shift 2 ;;
+        --candidate-spec) cand_spec=$(readlink -e "$2") || { >&2 echo "Error: no such file: $2"; exit 2; }; shift 2 ;;
+        --control-spec) ctrl_spec=$(readlink -e "$2") || { >&2 echo "Error: no such file: $2"; exit 2; }; shift 2 ;;
         -h|--help) awk 'NR > 2 && /^#/ {print; next} NR > 2 {exit}' "$0"; exit 0 ;;
         -*) >&2 echo "Error: unknown option $1"; exit 2 ;;
         *) pos+=("$1"); shift ;;
@@ -49,7 +52,7 @@ done
 outroot=${OUTROOT:-/glade/derecho/scratch/$USER/npl-scratch}
 rundir=$outroot/tests/runs/$(date +%Y-%m-%d_%H%M%S)_$(basename "$control")-vs-$(basename "$candidate")
 
-nodes=2; walltime=01:30:00; scope_args=""
+nodes=2; walltime=00:45:00; scope_args=""
 [[ $scope == single ]] && nodes=1
 [[ $scope == multi ]] && { walltime=00:30:00; scope_args="-m mpi"; }
 cpu="select=$nodes:ncpus=4:mpiprocs=4"
@@ -58,12 +61,14 @@ gpu="select=$nodes:ncpus=4:mpiprocs=4:ngpus=1:mem=32GB"
 # v100 cascadelake/skylake), so runs are comparable over time. a100 (milan), h100 (sapphirerapids) and
 # Derecho (milan) have one CPU each.
 #        label         queue             resources                                    kind
-table=(  "casper-cpu   casper            $cpu:mem=32GB:cpu_type=genoa                 cpu"
-         "casper-v100  casper            $gpu:gpu_type=v100:cpu_type=cascadelake      gpu"
-         "casper-a100  casper            $gpu:gpu_type=a100     gpu"
-         "casper-h100  casper            $gpu:gpu_type=h100     gpu"
+table=(  "casper-cpu   casper@casper-pbs $cpu:mem=32GB:cpu_type=genoa                 cpu"
+         "casper-v100  casper@casper-pbs $gpu:gpu_type=v100:cpu_type=cascadelake      gpu"
+         "casper-a100  casper@casper-pbs $gpu:gpu_type=a100     gpu"
+         "casper-h100  casper@casper-pbs $gpu:gpu_type=h100     gpu"
          "derecho-cpu  develop@desched1  $cpu:mem=16GB          cpu"
          "derecho-a100 develop@desched1  $gpu                   gpu" )
+declare -A hardware=([casper-cpu]="genoa" [casper-v100]="cascadelake, v100" [casper-a100]="milan, a100"
+                     [casper-h100]="sapphirerapids, h100" [derecho-cpu]="milan" [derecho-a100]="milan, a100")
 
 vars="TESTS=$tests,CONTROL=$control,CANDIDATE=$candidate,RUNDIR=$rundir"
 [[ -n $cand_spec ]] && vars+=",CANDIDATE_SPEC=$cand_spec"
@@ -79,6 +84,34 @@ done
 for l in ${only//,/ }; do
     [[ " ${selected[*]} " == *" $l "* ]] || { >&2 echo "Error: --only $l is not a node type, or not in --hw $hw"; exit 2; }
 done
+
+case $scope in
+    full)   scope_text="full: $nodes nodes per job, whole suite" ;;
+    single) scope_text="single: 1 node per job, whole suite except 2-node MPI" ;;
+    multi)  scope_text="multi: $nodes nodes per job, MPI tests only" ;;
+esac
+spec_note() { [[ -n $1 ]] && echo "  (spec: $1)" || true; }
+echo "NPL node tests: $(basename "$control") vs $(basename "$candidate")"
+printf '  %-10s %s%s\n' Control "$control" "$(spec_note "$ctrl_spec")" Candidate "$candidate" "$(spec_note "$cand_spec")"
+printf '  %-10s %s\n' Scope "$scope_text" Walltime "${walltime%:00} per job" Account "$account" "Run dir" "$rundir"
+echo
+fmt='  %-13s %-21s %-7s %-9s %-13s %-15s %s\n'
+printf "$fmt" "Node type" "Hardware" import activate "app serial" "app mpi" kernel
+printf "$fmt" "---------" "--------" ------ -------- ---------- ------- ------
+for row in "${table[@]}"; do
+    read -r label _ _ kind <<< "$row"
+    [[ " ${selected[*]} " == *" $label "* ]] || continue
+    if [[ $scope == multi ]]; then
+        smoke=- serial=- kernel=- mpi="1+2 nodes"
+    else
+        smoke=yes serial=yes kernel=yes mpi="1 node"
+        [[ $scope == full ]] && mpi="1+2 nodes"
+        [[ $kind == cpu ]] && serial="yes +PBS job"
+    fi
+    [[ $kind == gpu ]] && mpi+=", GPU"
+    printf "$fmt" "$label" "${hardware[$label]}" "$smoke" "$smoke" "$serial" "$mpi" "$kernel"
+done
+echo
 
 if (( submit )); then
     [[ ! -e $rundir ]] || { >&2 echo "Error: $rundir already exists"; exit 2; }
@@ -101,7 +134,8 @@ for row in "${table[@]}"; do
         jobid=$("${cmd[@]}") || { jobid=SUBMIT-FAILED; failed=1; }   # keep going with the other node types
         echo "job $label $jobid" >> "$rundir/run.txt"
         echo "$label  $jobid"
-    else
+    fi
+    if (( show_qsub )); then
         # same command, -v quoted (it may contain a space) so it can be copy-pasted
         echo "qsub -A $account -q $queue -l $res -l place=scatter -l walltime=$walltime -v \"$v\" -o $rundir/logs/ $tests/jobs/node_test.pbs"
     fi
@@ -110,5 +144,5 @@ if (( submit )); then
     echo "Pass/fail (updated as each job finishes): $rundir/SUMMARY.txt; details: RESULTS.txt (both also .md)"
     exit $failed
 else
-    echo "# Printed only. Rerun with --submit (that also creates the run dir and its run.txt)."
+    echo "Not submitted. Add --submit to run (that also creates the run dir), --show-qsub to see the qsub commands."
 fi

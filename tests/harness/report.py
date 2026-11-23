@@ -3,6 +3,7 @@
 
   report.py summary RUN_DIR                    one env: counts, failures, MPI table
   report.py compare CONTROL_DIR CANDIDATE_DIR  release vs candidate: regressions first
+  report.py slower CONTROL_DIR CANDIDATE_DIR TESTS_DIR   node IDs of tests flagged slower (node_test.pbs reruns them)
   report.py collect SUBMISSION_DIR [--ended JOBID]   all node types of one submit_node_tests.sh run ->
                                                SUBMISSION_DIR/SUMMARY.{txt,md} (pass/fail) and
                                                RESULTS.{txt,md} (details)
@@ -42,9 +43,64 @@ def load(run_dir):
         props = {p.get("name"): p.get("value") for p in tc.iter("property")}
         cases[test_id] = {"status": status, "detail": detail.splitlines()[0][:200] if detail else "",
                           "props": props, "time": float(tc.get("time") or 0)}
+    apply_reruns(run_dir, cases)
     fp_path = run_dir / "fingerprint.json"
     fp = json.loads(fp_path.read_text()) if fp_path.exists() else {}
     return cases, fp
+
+
+def apply_reruns(run_dir, cases):
+    """node_test.pbs reruns tests flagged slower into <run_dir>/../rerun/<env>/<n>/. For those tests use the mean
+    time (and MPI ring bandwidth) of the passing reruns; status stays the main run's. Marks them 'remeasured'."""
+    samples = {}
+    for junit in sorted((run_dir.parent / "rerun" / run_dir.name).glob("*/junit.xml")):
+        try:
+            root = ET.parse(junit).getroot()
+        except ET.ParseError:
+            continue
+        for tc in root.iter("testcase"):
+            if any(tc.find(t) is not None for t in ("failure", "error", "skipped")):
+                continue
+            props = {p.get("name"): p.get("value") for p in tc.iter("property")}
+            samples.setdefault(f"{tc.get('classname', '')}::{tc.get('name')}", []).append(
+                (float(tc.get("time") or 0), props.get("ring_MBps")))
+    for k, runs in samples.items():
+        if k not in cases:
+            continue
+        c = cases[k]
+        c["first_time"], c["first_props"] = c["time"], c["props"]
+        c["time"], c["remeasured"] = sum(t for t, _ in runs) / len(runs), len(runs)
+        bw = [float(b) for _, b in runs if b not in (None, "n/a")]
+        if bw and c["props"].get("ring_MBps") not in (None, "n/a"):
+            c["props"] = dict(c["props"], ring_MBps=str(round(sum(bw) / len(bw))))
+
+
+def pair_reruns(ctl, cand):
+    """Re-measured values count only when both envs have them; otherwise both sides keep the main run's time
+    and bandwidth (e.g. the control's reruns all failed). Returns (ctl, cand)."""
+    for k in set(ctl) | set(cand):
+        a, b = ctl.get(k), cand.get(k)
+        if bool(a and a.get("remeasured")) != bool(b and b.get("remeasured")):
+            for c in (a, b):
+                if c and c.get("remeasured"):
+                    c["time"], c["props"] = c.pop("first_time"), c.pop("first_props")
+                    del c["remeasured"]
+    return ctl, cand
+
+
+def slower_ids(ctl_dir, cand_dir, tests_dir):
+    """pytest node IDs of the tests flagged slower between two runs on one node (for node_test.pbs's rerun)."""
+    ctl, cand = load(ctl_dir)[0], load(cand_dir)[0]
+    try:
+        removed = package_diff(ctl_dir, cand_dir)[1]
+    except OSError:
+        removed = set()
+    ids = []
+    for k, _, reason, _, _ in problems(ctl, cand, removed)[0]:
+        if reason == "slower":
+            classname, _, name = k.partition("::")
+            ids.append(f"{tests_dir}/{classname.replace('.', '/')}.py::{name}")
+    return ids
 
 
 def short(test_id):
@@ -139,6 +195,7 @@ def classify(ctl, cand, removed=()):
 def compare(control_dir, candidate_dir):
     ctl, ctl_fp = load(control_dir)
     cand, cand_fp = load(candidate_dir)
+    pair_reruns(ctl, cand)
     try:
         added, removed = package_diff(control_dir, candidate_dir)
         pkg_line = f"added {', '.join(sorted(added)) or 'none'}; removed {', '.join(sorted(removed)) or 'none'}"
@@ -188,7 +245,7 @@ def job_result(sub_dir, label, jobid, ctl_name, cand_name, ended=()):
     try:
         ctl, _ = load(Path(sub_dir) / label / ctl_name)
         cand, fp = load(Path(sub_dir) / label / cand_name)
-        return "done", (ctl, cand, hardware(fp, label))
+        return "done", (*pair_reruns(ctl, cand), hardware(fp, label))
     except (ET.ParseError, ValueError) as e:      # cut off mid-write, e.g. killed at walltime
         return "no result", f"unreadable result file ({e}); see logs/{jobid}.OU"
     except RunMissing:
@@ -356,6 +413,11 @@ REASON = {"regression": "regressed", "missing": "missing", "newly skipped": "new
           "new failing": "new failing", "slower": "slower"}
 
 
+def remeasured_note(a, b):
+    n = min(a.get("remeasured", 0), b.get("remeasured", 0))
+    return f", mean of {n} reruns" if n else ""
+
+
 def summary_row(lab):
     return f"app {lab[1]}" if lab[2] == "app" else lab[2]
 
@@ -372,11 +434,12 @@ def problems(ctl, cand, removed=()):
             continue
         ra, rb = a["props"].get("ring_MBps"), b["props"].get("ring_MBps")
         if bw_fail(ra, rb):
-            out.append((k, lab(k), "slower", f"bandwidth {fmt_bw(ra)} -> {fmt_bw(rb)} ({fmt_change(ra, rb)})",
-                        1 - float(rb) / float(ra)))
+            out.append((k, lab(k), "slower", f"bandwidth {fmt_bw(ra)} -> {fmt_bw(rb)} ({fmt_change(ra, rb)})"
+                        + remeasured_note(a, b), 1 - float(rb) / float(ra)))
         elif not queue_timed(k, b["props"]) and slower_fail(lab(k)[2], lab(k)[1], a["time"], b["time"]):
             out.append((k, lab(k), "slower", f"runtime {fmt_time(a['time'])} -> {fmt_time(b['time'])} "
-                                              f"({fmt_change(a['time'], b['time'])})", b["time"] / a["time"] - 1))
+                                              f"({fmt_change(a['time'], b['time'])})" + remeasured_note(a, b),
+                        b["time"] / a["time"] - 1))
     return out, [(k, lab(k)) for k, _ in groups["pre-existing"]], groups
 
 
@@ -670,6 +733,8 @@ if __name__ == "__main__":
             print(summary(sys.argv[2]))
         elif len(sys.argv) == 4 and sys.argv[1] == "compare":
             print(compare(sys.argv[2], sys.argv[3]))
+        elif len(sys.argv) == 5 and sys.argv[1] == "slower":
+            print(" ".join(slower_ids(Path(sys.argv[2]), Path(sys.argv[3]), sys.argv[4])))
         elif len(sys.argv) in (3, 5) and sys.argv[1] == "collect" and sys.argv[3:4] in ([], ["--ended"]):
             print(f"Summary: {collect(sys.argv[2], sys.argv[4:])} (details: RESULTS.txt; both also as .md)")
         else:

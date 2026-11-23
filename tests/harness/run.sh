@@ -5,7 +5,8 @@
 #
 #   Usage: run.sh ENV_PREFIX OUTDIR [pytest args...]
 #     e.g. run.sh /glade/u/apps/opt/miniforge/envs/npl-2026a $OUT/npl-2026a -m smoke
-#   Select tests with -m/-k. To run specific files, set NPL_TEST_PATHS (absolute paths).
+#   Select tests with -m/-k. To run specific files or tests, set NPL_TEST_PATHS (absolute paths or node IDs,
+#   space-separated).
 #   Set NPL_SPEC=<environment.yml> for envs created from a full lock (see below).
 #   Writes: OUTDIR/junit.xml, OUTDIR/fingerprint.json, OUTDIR/environment.yml, OUTDIR/pytest.log
 #   Exit:   pytest's exit code (0 all passed, 1 test failures, 2-5 pytest usage/internal errors),
@@ -59,6 +60,8 @@ else
         || { >&2 echo "Error: could not export the env's package list"; exit 90; }
 fi
 
+# test paths or node IDs, split on whitespace only (no globbing: IDs like test_x[a-b] contain brackets)
+read -ra paths <<< "${NPL_TEST_PATHS:-$tests}"
 unset PYTHONPATH                 # nothing but the env itself on child processes' path
 export NPL_TEST_OUT=$out
 cd "$out"                        # nothing from the repo lands on sys.path
@@ -68,5 +71,5 @@ cd "$out"                        # nothing from the repo lands on sys.path
 python -c 'import sys; sys.path.append(sys.argv.pop(1)); import pytest; sys.exit(pytest.console_main())' \
     "$site" -c "$tests/pytest.ini" --rootdir "$tests" --basetemp "$out/tmp" \
     --junitxml "$out/junit.xml" -o junit_suite_name="$(basename "$prefix")" \
-    --spec "$out/environment.yml" "$@" ${NPL_TEST_PATHS:-$tests} 2>&1 | tee "$out/pytest.log"
+    --spec "$out/environment.yml" "$@" "${paths[@]}" 2>&1 | tee "$out/pytest.log"
 exit "${PIPESTATUS[0]}"
