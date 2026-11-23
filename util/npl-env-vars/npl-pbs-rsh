@@ -1,0 +1,22 @@
+#!/bin/sh
+# npl-pbs-rsh: rsh-compatible launcher for mpich hydra inside a PBS job: start the command on the remote host
+# through the PBS daemons (pbs_tmrsh, no ssh), via /bin/sh so hydra's quoting is interpreted as
+# it would be by ssh's remote shell. Usage (as hydra calls it): npl-pbs-rsh [-n] [-l user] host command...
+# Used via env_vars HYDRA_LAUNCHER=rsh + HYDRA_LAUNCHER_EXEC=npl-pbs-rsh because ssh host-based auth is
+# refused between Derecho GPU nodes (2026-11-17). Outside a PBS job it falls back to ssh; single-host
+# mpiexec never calls the launcher. Installed into <prefix>/bin by util/install_env_vars.
+# Outside a PBS job pbs_tmrsh cannot work, so behave exactly like hydra's default (ssh).
+[ -n "${PBS_JOBID:-}" ] || exec ssh "$@"
+opts=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -n) opts="$opts -n"; shift ;;
+        -l) [ $# -ge 2 ] || { echo "npl-pbs-rsh: -l needs a user name" >&2; exit 2; }
+            opts="$opts -l $2"; shift 2 ;;
+        -*) echo "npl-pbs-rsh: unsupported option $1" >&2; exit 2 ;;
+        *) break ;;
+    esac
+done
+[ $# -ge 2 ] || { echo "usage: npl-pbs-rsh [-n] [-l user] host command..." >&2; exit 2; }
+host=$1; shift
+exec /opt/pbs/bin/pbs_tmrsh $opts "$host" /bin/sh -c "$*"

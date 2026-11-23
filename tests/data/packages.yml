@@ -1,0 +1,37 @@
+# How to check that each conda package is usable, when the default rule doesn't work.
+# Default rule: `import <conda name with - replaced by _>`.
+
+# conda package name -> python import name, or a list of alternatives (any one importing passes)
+import_names:
+  arm_pyart: pyart
+  gdal: osgeo.gdal
+  geocat-comp: geocat.comp
+  geocat-viz: geocat.viz
+  netcdf4: netCDF4
+  pillow: PIL
+  pyhdf: pyhdf.SD
+  pynco: nco
+  pyqt: [PyQt5, PyQt6]
+  pyngl: Ngl
+  pyspharm: spharm
+  python-graphviz: graphviz
+  python-wget: wget
+  pytables: tables
+  pywavelets: pywt
+  scikit-image: skimage
+  scikit-learn: sklearn
+  wrf-python: wrf
+
+# packages that provide a command instead of (or besides) a python module
+commands:
+  awscli: [aws, --version]
+  globus-cli: [globus, version]
+  eccodes: [codes_info]
+
+# not python packages, or nothing meaningful to check
+skip:
+  - python
+  - r              # R language metapackage in older NPLs, not a python package
+  - openssl
+  - ca-certificates
+  - libblas

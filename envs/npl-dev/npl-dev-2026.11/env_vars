@@ -1,0 +1,19 @@
+# Environment variables this env sets on activation: KEY=VALUE, one per line, no spaces
+# in values. Installed into <prefix>/etc/npl/env_vars by util/install_env_vars, and applied
+# by util/npl-env-vars/* activate.d/deactivate.d scripts that restore the prior state exactly.
+# Not conda's `variables:` block: its deactivate leaves formerly-unset variables exported as ''
+# (UCX_TLS='' breaks system openmpi/ucx in the same shell; job 6644997, 2026-11-13).
+#
+# UCX_TLS is deliberately NOT set here (2026-11-17 trial; the npl-2026b release keeps UCX_TLS=tcp):
+# UCX picks its own transports, i.e. InfiniBand between Casper nodes (2-3x faster for mpi4py in
+# tests). Derecho is unaffected. To force TCP, `export UCX_TLS=tcp` after `conda activate`.
+# A value set BEFORE activation is overridden by the setting below. These apply to any UCX-based MPI
+# started from the shell, including system openmpi on Casper (Derecho's cray-mpich does not use UCX).
+UCX_MODULES=^*gda*
+#
+# mpich's hydra starts ranks on other nodes with ssh by default, and ssh is refused between Derecho GPU
+# nodes. These make it start them through PBS instead (pbs_tmrsh via $CONDA_PREFIX/bin/npl-pbs-rsh,
+# found on PATH). Only multi-node mpiexec inside a PBS job uses them. To get ssh back:
+# `unset HYDRA_LAUNCHER HYDRA_LAUNCHER_EXEC` after activation. Trial in npl-dev since 2026-11-17.
+HYDRA_LAUNCHER=rsh
+HYDRA_LAUNCHER_EXEC=npl-pbs-rsh
